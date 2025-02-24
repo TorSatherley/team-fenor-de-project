@@ -7,7 +7,7 @@ data "aws_region" "current" {}
 
 locals {
   aws_account_id = data.aws_caller_identity.current.account_id
-  aws_region = data.aws_region.current.name
+  aws_region     = data.aws_region.current.name
 }
 
 
@@ -19,9 +19,9 @@ variable "env" {
 variable "default_tags" {
   type = map(string)
   default = {
-      Owner       = "Team Fenor"
-      Project     = "Totesys DE Project"
-      Environment = "Development"
+    Owner       = "Team Fenor"
+    Project     = "Totesys DE Project"
+    Environment = "Development"
   }
 }
 
@@ -30,17 +30,17 @@ variable "default_tags" {
 ######################
 
 variable "s3_ingestion_bucket" {
-  type = string
+  type    = string
   default = "totesys-ingestion-zone-fenor"
 }
 
 variable "s3_processed_bucket" {
-  type = string
+  type    = string
   default = "totesys-processed-zone-fenor"
 }
 
 variable "s3_logging_bucket" {
-  type = string
+  type    = string
   default = "totesys-data-logging-fenor"
 }
 
@@ -49,17 +49,17 @@ variable "s3_logging_bucket" {
 ######################
 
 variable "lambda_extract_handler" {
-  type = string 
+  type    = string
   default = "lambda_extract_handler"
 }
 
 variable "lambda_transform_handler" {
-  type = string 
+  type    = string
   default = "lambda_transform_handler"
 }
 
 variable "lambda_load_handler" {
-  type = string 
+  type    = string
   default = "lambda_load_handler"
 }
 

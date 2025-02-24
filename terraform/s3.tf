@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "data_ingestion_bucket" {
     var.default_tags,
     {
       Name = "S3_Ingestion_Bucket"
-    })
+  })
 }
 
 
@@ -18,24 +18,23 @@ resource "aws_s3_bucket" "data_processed_bucket" {
     var.default_tags,
     {
       Name = "S3_Processed_Bucket"
-    })
+  })
 }
 
 
-# S3 Bucket for Logging
+# S3 Bucket - Logging Ingestion and Processed buckets
 resource "aws_s3_bucket" "data_logging_bucket" {
-  bucket = var.s3_logging_bucket
-  force_destroy = true 
+  bucket        = var.s3_logging_bucket
+  force_destroy = true
   tags = merge(
     var.default_tags,
     {
       Name = "S3_Logging_Bucket"
-    })
+  })
 }
 
-########################################################
-########## S3 - Versioning / Immutable Data
-########################################################
+
+# S3 - Versioning / Immutable Data
 
 resource "aws_s3_bucket_versioning" "s3_versioning_ingestion" {
   bucket = aws_s3_bucket.data_ingestion_bucket.id
@@ -73,14 +72,14 @@ resource "aws_s3_bucket_object_lock_configuration" "s3_versioning_processed" {
   }
 }
 
-#########################################################
-###### S3 Logging Bucket
-#########################################################
+
+# S3 Logging Bucket 
 
 resource "aws_s3_bucket_logging" "s3_logging_ingestion" {
   bucket        = aws_s3_bucket.data_ingestion_bucket.id
   target_bucket = aws_s3_bucket.data_logging_bucket.id
   target_prefix = "ingestion-logs/"
+  
 }
 
 resource "aws_s3_bucket_logging" "s3_logging_processed" {
