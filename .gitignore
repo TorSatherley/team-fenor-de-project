@@ -1,0 +1,9 @@
+venv/
+**/.terraform*
+**/*.pyc
+**/.vscode
+**/*_cache
+**/*pycache
+*coverage*
+**/.vscode/
+temp/
