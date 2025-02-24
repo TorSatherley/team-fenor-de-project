@@ -1,0 +1,33 @@
+name: project-feanor-mvp-pipeline
+
+on:
+  push:
+    branches:
+      - CI/CD
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run-tests:
+
+    name: run-tests
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: eu-west-2
+      AWS_DEFAULT_REGION: eu-west-2
+
+    steps:
+      - name: Checkout and clone repo
+        uses: actions/checkout@v4
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Requirements
+        run: make requirements
+      - name: Dev setup
+        run: make dev-setup
+      - name: Run checks
+        run: make run-checks
