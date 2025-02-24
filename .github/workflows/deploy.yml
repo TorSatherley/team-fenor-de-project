@@ -6,7 +6,7 @@ on:
       - CI/CD
   pull_request:
     branches:
-      -main
+      - main
 
 jobs:
   run-tests:
