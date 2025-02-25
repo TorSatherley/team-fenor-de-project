@@ -48,12 +48,11 @@ coverage:
 	$(call execute_in_env, $(PIP) install coverage)
 
 ## Set up dev requirements (bandit, black & coverage)
-dev-setup: bandit black coverage
+dev-setup: bandit black coverage pip-audit
 
 ## Run the security test (bandit)
 security-test:
 	$(call execute_in_env, bandit -lll */*.py *c/*/*.py)
-
 ## Run the black code check
 
 
@@ -61,7 +60,7 @@ security-test:
 
 
 run-black:
-	$(call execute_in_env, black  ./src/*.py ./test/*.py)
+	$(call execute_in_env, black  ./src/*.py ./test/*.py ./db/*.py ./terraform/extract_module/src/*.py)
 
 ## Run the unit tests
 unit-test:
