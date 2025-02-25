@@ -37,7 +37,7 @@ requirements: create-environment
 # Set Up
 ## Install pip-audit
 pip-audit:
-	$(call execute_in_env, $(PIP) isntall pip-audit)
+	$(call execute_in_env, $(PIP) install pip-audit)
 ## Install bandit
 bandit:
 	$(call execute_in_env, $(PIP) install bandit)
