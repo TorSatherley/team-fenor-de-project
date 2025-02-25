@@ -36,41 +36,41 @@ resource "aws_s3_bucket" "data_logging_bucket" {
 
 # S3 - Versioning / Immutable Data
 
-resource "aws_s3_bucket_versioning" "s3_versioning_ingestion" {
-  bucket = aws_s3_bucket.data_ingestion_bucket.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+# resource "aws_s3_bucket_versioning" "s3_versioning_ingestion" {
+#   bucket = aws_s3_bucket.data_ingestion_bucket.id
+#   versioning_configuration {
+#     status = "Enabled"
+#   }
+# }
 
-resource "aws_s3_bucket_object_lock_configuration" "s3_object_lock_ingestion" {
-  bucket = aws_s3_bucket.data_ingestion_bucket.id
+# resource "aws_s3_bucket_object_lock_configuration" "s3_object_lock_ingestion" {
+#   bucket = aws_s3_bucket.data_ingestion_bucket.id
 
-  rule {
-    default_retention {
-      mode = "COMPLIANCE"
-      days = 21
-    }
-  }
-}
+#   rule {
+#     default_retention {
+#       mode = "COMPLIANCE"
+#       days = 1
+#     }
+#   }
+# }
 
-resource "aws_s3_bucket_versioning" "s3_versioning_processed" {
-  bucket = aws_s3_bucket.data_processed_bucket.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+# resource "aws_s3_bucket_versioning" "s3_versioning_processed" {
+#   bucket = aws_s3_bucket.data_processed_bucket.id
+#   versioning_configuration {
+#     status = "Enabled"
+#   }
+# }
 
-resource "aws_s3_bucket_object_lock_configuration" "s3_versioning_processed" {
-  bucket = aws_s3_bucket.data_processed_bucket.id
+# resource "aws_s3_bucket_object_lock_configuration" "s3_versioning_processed" {
+#   bucket = aws_s3_bucket.data_processed_bucket.id
 
-  rule {
-    default_retention {
-      mode = "COMPLIANCE"
-      days = 21
-    }
-  }
-}
+#   rule {
+#     default_retention {
+#       mode = "COMPLIANCE"
+#       days = 1
+#     }
+#   }
+# }
 
 
 # S3 Logging Bucket 
