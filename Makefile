@@ -48,7 +48,7 @@ coverage:
 	$(call execute_in_env, $(PIP) install coverage)
 
 ## Set up dev requirements (bandit, black & coverage)
-dev-setup: bandit black coverage pip-audit
+dev-setup: bandit black coverage
 
 ## Run the security test (bandit)
 security-test:
