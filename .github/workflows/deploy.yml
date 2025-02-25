@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - CI/CD
+      - CICD-updates
   pull_request:
     branches:
       - main
