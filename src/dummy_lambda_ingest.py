@@ -115,4 +115,4 @@ def log_file(keys):
     formatted_log = "\n".join(log_contents)
     bytes_log = str.encode(formatted_log)
 
-    s3_client.put_object(Body=bytes_log, Bucket=bucket_name, Key=f"logs/{datetime.today().strftime('%Y-%m-%d_%H-%S')}.log")s
+    s3_client.put_object(Body=bytes_log, Bucket=bucket_name, Key=f"logs/{datetime.today().strftime('%Y-%m-%d_%H-%S')}.log")
