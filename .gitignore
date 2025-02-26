@@ -20,3 +20,4 @@ venv/
 **/.terraform*
 *.tfstate*
 .env
+terraform/extract_module/lambda_extract_handler_layer/python/*
