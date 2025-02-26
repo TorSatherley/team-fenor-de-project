@@ -64,7 +64,7 @@ security-test:
 
 
 run-black:
-	$(call execute_in_env, black  ./src/*.py ./test/*.py)
+	$(call execute_in_env, black  ./src/*.py ./test/*.py ./db/*.py ./terraform/extract_module/src/*.py)
 
 ## Run the unit tests
 unit-test:
