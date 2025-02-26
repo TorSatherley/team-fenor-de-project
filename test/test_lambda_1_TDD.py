@@ -43,13 +43,6 @@ Actions:
 
 #%% Placeholder Variables and Functions - These are hard-coded currently and may need to be made more programmic
 
-
-
-
-def some_function_that_returns_a_table_from_Postgres():
-    pass
-
-
 class DummyContext:
     pass
 
@@ -129,18 +122,17 @@ def return_s3_key__injection_bucket(table_name):
 
 
 #@pytest.mark.timeout(10)
-class Test_write_variable_to_s3:
+class Test_write_table_to_s3:
     def test_1_expected_file_names_are_added_to_blank_s3(self, s3_client, hardcoded_variables, example_sales_order_table):
         """
-        This test verifies that the write_variable_to_s3 function adds a table to the s3 bucket.
+        This test verifies that the write_table_to_s3 function adds a table to the s3 bucket.
 
         Expected behavior:
         - write_variable_to_s3(s3_client, variable, bucket_name, object_key)
             should:
             then populate said variable (in this case table data returned from postgres) in the object_key location specified
         """
-        global target_bucket_name
-        #s3_client.create_bucket(Bucket=hardcoded_variables["target_bucket_name"], CreateBucketConfiguration={"LocationConstraint":"eu-west-2"})
+        # assemble
         pg8000_rows, pg8000_cols = example_sales_order_table
         table_name = "sales_order" # not sure if this is hardcoding
         expected_object_key = return_s3_key__injection_bucket(table_name) # Action: I reckon there is a way to extract the table name from the variable metadata
@@ -183,8 +175,8 @@ class Test_lambda_hander:
                     lambda_handler(event, DummyContext)
                         
             # assert - do all the files exist?
-            actual_list_of_s3_filepaths = s3_mock_client.list_objects()
-            assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"]]
+            actual_list_of_s3_filepaths = s3_mock_client.list_objects(Bucket=hardcoded_variables["target_bucket_name"])
+            assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"])
             
             # assert - does data match?
             def placeholder_function_for_checking_data_placed_into_s3_folder(table_name):
