@@ -13,7 +13,7 @@ def get_secret(client):
     function uses aws secret manager to retreive sensitive credentials
     """
     
-    secret_name = os.environ.get("SECRET_NAME")
+    secret_name = 'totesys-db-credentials'
 
 
     try:
