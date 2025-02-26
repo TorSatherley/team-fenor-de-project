@@ -34,6 +34,7 @@ networkx==3.4.2
 openapi-schema-validator==0.6.3
 openapi-spec-validator==0.7.1
 packaging==24.2
+pandas==2.2.3
 pathable==0.4.4
 pg8000==1.31.2
 pluggy==1.5.0
