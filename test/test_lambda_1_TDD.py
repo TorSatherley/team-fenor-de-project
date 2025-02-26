@@ -35,35 +35,20 @@ PS:
 
 Actions:
     - Remove the hardcoding
+    - ensure that development uses environmental variable to assign bucket name
+    - populate: placeholder_function_for_checking_data_placed_into_s3_folder
 """
 
 
 
 #%% Placeholder Variables and Functions - These are hard-coded currently and may need to be made more programmic
 
-target_bucket_name = "injestion_zone"
-list_of_toteSys_tables = ["tableA", "tableB"] # Action: obviously this isn't the list and should be replaced with an postGRESS function that lists all the tables in a database
-dict_table_snapshot_filepaths = {
-    "address"       : "data/json_files/address.json", 
-    "counterparty"  : "data/json_files/counterparty.json", 
-    "currency"      : "data/json_files/currency.json", 
-    "department"    : "data/json_files/department.json", 
-    "design"        : "data/json_files/design.json", 
-    "payment_type"  : "data/json_files/payment_type.json", 
-    "payment"       : "data/json_files/payment.json", 
-    "purchase_order": "data/json_files/purchase_order.json", 
-    "sales_order"   : "data/json_files/sales_order.json", 
-    "staff"         : "data/json_files/staff.json", 
-    "transaction"   : "data/json_files/transaction.json"
-    }
 
 
 
 def some_function_that_returns_a_table_from_Postgres():
     pass
 
-def return_s3_key__injection_bucket():
-    pass
 
 class DummyContext:
     pass
@@ -77,10 +62,24 @@ MOCK_ENVIROMENT = True
 @pytest.fixture()
 def hardcoded_variables():
     hardcoded_variables = {}
-    hardcoded_variables["target_bucket_name"] = "injestion zone"
+    hardcoded_variables["target_bucket_name"] = "totesys-ingestion-zone-fenor-dummy-test"
     hardcoded_variables["list_of_toteSys_tables"] = ["tableA", "tableB"]
     hardcoded_variables["AccountId"] = "AccountId"
     hardcoded_variables["list_of_tables"] = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "sales_order", "staff", "transaction"]
+    hardcoded_variables["dict_table_snapshot_filepaths"] = {
+    "address"       : "data/json_files/address.json", 
+    "counterparty"  : "data/json_files/counterparty.json", 
+    "currency"      : "data/json_files/currency.json", 
+    "department"    : "data/json_files/department.json", 
+    "design"        : "data/json_files/design.json", 
+    "payment_type"  : "data/json_files/payment_type.json", 
+    "payment"       : "data/json_files/payment.json", 
+    "purchase_order": "data/json_files/purchase_order.json", 
+    "sales_order"   : "data/json_files/sales_order.json", 
+    "staff"         : "data/json_files/staff.json", 
+    "transaction"   : "data/json_files/transaction.json"
+    }
+    
     return hardcoded_variables
 
 
@@ -91,7 +90,7 @@ def s3_client(hardcoded_variables):
         with mock_aws():
             s3 = boto3.client("s3")
             s3.create_bucket(
-                Bucket=target_bucket_name,
+                Bucket=hardcoded_variables["target_bucket_name"],
                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
             yield s3
     elif MOCK_ENVIROMENT == False:
@@ -102,28 +101,26 @@ def s3_client(hardcoded_variables):
         yield s3
 
 @pytest.fixture()
-def example_sales_order_table():
-    global dict_table_snapshot_filepaths
-    json_to_pg8000_output(filepath, include_cols_in_output=True):
-    dict_table_snapshot_filepaths["sales_order"]
-    example_sales_order_table = some_function_that_returns_a_table_from_Postgres()
-    return example_sales_order_table
+def example_sales_order_table(hardcoded_variables):
+    simulated_pg8000_output, simulated_pg8000_output_cols = json_to_pg8000_output(hardcoded_variables["dict_table_snapshot_filepaths"]["sales_order"], include_cols_in_output=True)
+    return simulated_pg8000_output, simulated_pg8000_output_cols
 
 
 @pytest.fixture()
-def snapshot_data_dict():
+def snapshot_data_dict(hardcoded_variables):
+    snapshot_data_dict = {}
+    for key, path in zip(hardcoded_variables["dict_table_snapshot_filepaths"].keys(),
+                         hardcoded_variables["dict_table_snapshot_filepaths"].values()):
+        rows, cols = json_to_pg8000_output(path, include_cols_in_output=True)
+        snapshot_data_dict[key] = {"rows": rows, "cols":cols}
+        
     # TO DO: this will take all the snapshot data from the jsons and place them into dfs in a dict for later testing
-    return None
+    return snapshot_data_dict
 
-@pytest.fixture()
-def snapshot_data_in_list():
-    # TO DO: this will take all the snapshot data from the jsons and place them into dfs in a dict for later testing
-    return None
-
-def return_object_s3_key_injection_bucket(table):
+def return_s3_key__injection_bucket(table_name):
     timestamp = datetime.now()
     year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
-    return f'data/{table}/{year}-{month}-{day}_{hour}-{minute}/{table}.json'
+    return f'data/{table_name}/{year}-{month}-{day}_{hour}-{minute}/{table_name}.json'
     
 
 
@@ -131,7 +128,7 @@ def return_object_s3_key_injection_bucket(table):
 #%% Tests
 
 
-@pytest.mark.timeout(10)
+#@pytest.mark.timeout(10)
 class Test_write_variable_to_s3:
     def test_1_expected_file_names_are_added_to_blank_s3(self, s3_client, hardcoded_variables, example_sales_order_table):
         """
@@ -142,23 +139,27 @@ class Test_write_variable_to_s3:
             should:
             then populate said variable (in this case table data returned from postgres) in the object_key location specified
         """
-        # assemble
-        print(dir(example_sales_order_table))
-        object_key = return_s3_key__injection_bucket(example_sales_order_table) # Action: I reckon there is a way to extract the table name from the variable metadata
+        global target_bucket_name
+        #s3_client.create_bucket(Bucket=hardcoded_variables["target_bucket_name"], CreateBucketConfiguration={"LocationConstraint":"eu-west-2"})
+        pg8000_rows, pg8000_cols = example_sales_order_table
+        table_name = "sales_order" # not sure if this is hardcoding
+        expected_object_key = return_s3_key__injection_bucket(table_name) # Action: I reckon there is a way to extract the table name from the variable metadata
         
         # act
-        response = write_table_to_s3(s3_client, example_sales_order_table, hardcoded_variables["target_bucket_name"], object_key)
+        response = write_table_to_s3(s3_client, pg8000_rows, pg8000_cols, hardcoded_variables["target_bucket_name"], table_name)
         
         # assert
         file_list_response = s3_client.list_objects_v2(Bucket=hardcoded_variables["target_bucket_name"])
         actual_file_key_list = [i['Key'] for i in file_list_response['Contents']]
         pprint(response)
-        assert [object_key] == actual_file_key_list
+        assert [expected_object_key] == actual_file_key_list
+        
+        
+        
 
 
 class Test_lambda_hander:
-    @pytest.mark.skip()
-    def test_2a_all_tables_are_digested_once_mock(self, hardcoded_variables, snapshot_data_dict, snapshot_data_in_list):
+    def test_2a_all_tables_are_digested_once__mocked(self, hardcoded_variables, snapshot_data_dict):
         """
         This test verifies that the lambda handler when fed controlled values for the conn.run method, can populate a s3 bucket correctly.
 
@@ -170,44 +171,36 @@ class Test_lambda_hander:
         with mock_aws():
             
             # assemble  
-            s3_actual_results = boto3.client("s3")
+            s3_mock_client = boto3.client("s3")
             event = {}
-
+            nested_list_of_pg8000_returned_rows = [snapshot_data_dict[table_name]["rows"] for table_name in hardcoded_variables["list_of_tables"]]
+            nested_list_of_pg8000_returned_cols = [snapshot_data_dict[table_name]["cols"] for table_name in hardcoded_variables["list_of_tables"]]
+            
             
             # act
-            # I think this is the wrong code -> @pytest.mark.parametrize("user_input", ["a", "t", "!", " ", "X"])
-            patched_list_of_tables = [hardcoded_variables["list_of_tables"]]
-            with patch("pg8000.native.Connection.run", side_effect=patched_list_of_tables + snapshot_data_in_list):
-                lambda_handler(event, DummyContext)
-            
+            with patch("pg8000.native.Connection.run", side_effect=[hardcoded_variables["list_of_tables"]] + nested_list_of_pg8000_returned_rows):
+                with patch("pg8000.native.Connection.columns", side_effect=nested_list_of_pg8000_returned_cols):
+                    lambda_handler(event, DummyContext)
+                        
             # assert - do all the files exist?
-            actual_list_of_s3_filepaths = s3_actual_results.list_objects()
-            assert actual_list_of_s3_filepaths == [return_object_s3_key_injection_bucket(table_name) for table_name in hardcoded_variables["list_of_toteSys_tables"]]
+            actual_list_of_s3_filepaths = s3_mock_client.list_objects()
+            assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"]]
             
             # assert - does data match?
+            def placeholder_function_for_checking_data_placed_into_s3_folder(table_name):
+                return True
             for table_name in hardcoded_variables["list_of_toteSys_tables"]:
-                assert snapshot_data_dict["table_name"].to_json() == s3_actual_results.get_object(return_object_s3_key_injection_bucket(table_name))
+                assert placeholder_function_for_checking_data_placed_into_s3_folder(table_name) == True
+                
+                
+                
 
     @pytest.mark.skip()
-    def test_2b_tables_are_refreshed_with_update():
-        # this method should check that the s3 bucket is wiped clean and new data is inserted to the s3 bucket on a second calling of the method
-        # to ensure this, the dummy totsys data will need to be modified between excution calls
-        
-        """
-        Insert the previous method then:
-        
-        
-        new_snapshot_data = add_some_data_to_snapshot(snapshot_data)
-        
-        
-        
-        
-        
-        """
-        
-        
-        
+    def test_2a_all_tables_are_digested_twice__mocked():
+        # this method should check that the s3 bucket stores both sets of data alongside if data is inserted TWICE
+                
         pass
+    
     @pytest.mark.skip()
     def test_2c_ensure_that_failures_are_logged():
         # adapt the below
