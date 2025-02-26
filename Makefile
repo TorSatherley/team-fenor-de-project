@@ -35,6 +35,9 @@ requirements: create-environment
 
 ################################################################################################################
 # Set Up
+## Install pip-audit
+pip-audit:
+	$(call execute_in_env, $(PIP) install pip-audit)
 ## Install bandit
 bandit:
 	$(call execute_in_env, $(PIP) install bandit)
@@ -48,11 +51,14 @@ coverage:
 	$(call execute_in_env, $(PIP) install coverage)
 
 ## Set up dev requirements (bandit, black & coverage)
-dev-setup: bandit black coverage
+dev-setup: bandit black coverage pip-audit
 
 ## Run the security test (bandit)
 security-test:
 	$(call execute_in_env, bandit -lll */*.py *c/*/*.py)
+
+	$(call execute_in_env, pip-audit)
+
 ## Run the black code check
 
 
