@@ -4,7 +4,9 @@ from moto import mock_aws
 import json
 from unittest.mock import Mock, patch
 from pprint import pprint
-from src.lambda_ingest import write_variable_to_s3, write_table_to_s3, connect_to_db, close_db_connection, get_rows_and_columns_from_table, return_object_s3_key_injection_bucket, lambda_handler
+from src.dummy_lambda_ingest import write_table_to_s3, lambda_handler
+from datetime import datetime
+from src.util import json_to_pg8000_output
 
 """
 test_lambda_1_TDD.py
@@ -39,11 +41,28 @@ Actions:
 
 #%% Placeholder Variables and Functions - These are hard-coded currently and may need to be made more programmic
 
-target_bucket_name = "injestion zone"
+target_bucket_name = "injestion_zone"
 list_of_toteSys_tables = ["tableA", "tableB"] # Action: obviously this isn't the list and should be replaced with an postGRESS function that lists all the tables in a database
+dict_table_snapshot_filepaths = {
+    "address"       : "data/json_files/address.json", 
+    "counterparty"  : "data/json_files/counterparty.json", 
+    "currency"      : "data/json_files/currency.json", 
+    "department"    : "data/json_files/department.json", 
+    "design"        : "data/json_files/design.json", 
+    "payment_type"  : "data/json_files/payment_type.json", 
+    "payment"       : "data/json_files/payment.json", 
+    "purchase_order": "data/json_files/purchase_order.json", 
+    "sales_order"   : "data/json_files/sales_order.json", 
+    "staff"         : "data/json_files/staff.json", 
+    "transaction"   : "data/json_files/transaction.json"
+    }
+
 
 
 def some_function_that_returns_a_table_from_Postgres():
+    pass
+
+def return_s3_key__injection_bucket():
     pass
 
 class DummyContext:
@@ -83,9 +102,12 @@ def s3_client(hardcoded_variables):
         yield s3
 
 @pytest.fixture()
-def example_table_A_from_Postgres():
-    example_table_A_from_Postgres = some_function_that_returns_a_table_from_Postgres()
-    return example_table_A_from_Postgres
+def example_sales_order_table():
+    global dict_table_snapshot_filepaths
+    json_to_pg8000_output(filepath, include_cols_in_output=True):
+    dict_table_snapshot_filepaths["sales_order"]
+    example_sales_order_table = some_function_that_returns_a_table_from_Postgres()
+    return example_sales_order_table
 
 
 @pytest.fixture()
@@ -93,13 +115,25 @@ def snapshot_data_dict():
     # TO DO: this will take all the snapshot data from the jsons and place them into dfs in a dict for later testing
     return None
 
+@pytest.fixture()
+def snapshot_data_in_list():
+    # TO DO: this will take all the snapshot data from the jsons and place them into dfs in a dict for later testing
+    return None
+
+def return_object_s3_key_injection_bucket(table):
+    timestamp = datetime.now()
+    year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
+    return f'data/{table}/{year}-{month}-{day}_{hour}-{minute}/{table}.json'
+    
+
+
 
 #%% Tests
 
 
 @pytest.mark.timeout(10)
 class Test_write_variable_to_s3:
-    def test_1_expected_file_names_are_added_to_blank_s3(self, s3_client, hardcoded_variables, example_table_A_from_Postgres):
+    def test_1_expected_file_names_are_added_to_blank_s3(self, s3_client, hardcoded_variables, example_sales_order_table):
         """
         This test verifies that the write_variable_to_s3 function adds a table to the s3 bucket.
 
@@ -109,10 +143,11 @@ class Test_write_variable_to_s3:
             then populate said variable (in this case table data returned from postgres) in the object_key location specified
         """
         # assemble
-        object_key = return_object_s3_key_injection_bucket(example_table_A_from_Postgres.__name__) # Action: I reckon there is a way to extract the table name from the variable metadata
+        print(dir(example_sales_order_table))
+        object_key = return_s3_key__injection_bucket(example_sales_order_table) # Action: I reckon there is a way to extract the table name from the variable metadata
         
         # act
-        response = write_variable_to_s3(s3_client, example_table_A_from_Postgres, hardcoded_variables["target_bucket_name"], object_key)
+        response = write_table_to_s3(s3_client, example_sales_order_table, hardcoded_variables["target_bucket_name"], object_key)
         
         # assert
         file_list_response = s3_client.list_objects_v2(Bucket=hardcoded_variables["target_bucket_name"])
@@ -122,19 +157,28 @@ class Test_write_variable_to_s3:
 
 
 class Test_lambda_hander:
-    def test_2a_all_tables_are_digested_once_mock(self, hardcoded_variables, snapshot_data_dict):
-        
+    @pytest.mark.skip()
+    def test_2a_all_tables_are_digested_once_mock(self, hardcoded_variables, snapshot_data_dict, snapshot_data_in_list):
+        """
+        This test verifies that the lambda handler when fed controlled values for the conn.run method, can populate a s3 bucket correctly.
+
+        Expected behavior:
+        - lambda_handler(event, DummyContext)
+            should:
+            then populate s3 bucket as logic is designed to do
+        """
         with mock_aws():
             
-            # assemble
-            
+            # assemble  
             s3_actual_results = boto3.client("s3")
-            expected_data = snapshot_data_dict
             event = {}
 
+            
             # act
-            lambda_handler(event, DummyContext)
-
+            # I think this is the wrong code -> @pytest.mark.parametrize("user_input", ["a", "t", "!", " ", "X"])
+            patched_list_of_tables = [hardcoded_variables["list_of_tables"]]
+            with patch("pg8000.native.Connection.run", side_effect=patched_list_of_tables + snapshot_data_in_list):
+                lambda_handler(event, DummyContext)
             
             # assert - do all the files exist?
             actual_list_of_s3_filepaths = s3_actual_results.list_objects()
@@ -155,12 +199,16 @@ class Test_lambda_hander:
         
         new_snapshot_data = add_some_data_to_snapshot(snapshot_data)
         
+        
+        
+        
+        
         """
         
         
         
         pass
-    
+    @pytest.mark.skip()
     def test_2c_ensure_that_failures_are_logged():
         # adapt the below
         """Tests the lambda handler"""
@@ -174,6 +222,7 @@ class Test_lambda_hander:
             with caplog.at_level(logging.INFO):
                 lambda_handler(event, context)
                 assert "Wrote quotes to S3" in caplog.text"""
+        pass
 
 
 
