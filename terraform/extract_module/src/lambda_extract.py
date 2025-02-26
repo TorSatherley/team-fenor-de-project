@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from pg8000.native import Connection
 
+
 client = boto3.client(service_name='secretsmanager', region_name="eu-west-2")
 bucket_name = "totesys-ingestion-zone-fenor"
 
@@ -100,13 +101,16 @@ def write_table_to_s3(table, rows, columns):
     date_today = datetime.now().strftime('%Y%m%d')
 
 
+
     key = f"data/{date_today}_{static_time}/{table}.json"
     s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
     return key
 
 
+
 def log_file(keys):
     log_contents = []
+
 
     for key in keys:
         log_contents.append(f'Uploaded: {key} at {datetime.now()}')
@@ -115,3 +119,7 @@ def log_file(keys):
     bytes_log = str.encode(formatted_log)
 
     s3_client.put_object(Body=bytes_log, Bucket=bucket_name, Key=f"logs/{datetime.today().strftime('%Y-%m-%d_%H-%S')}.log")
+
+    return {"message": "Files Processed: Batch Lambda Transform complete"}
+
+
