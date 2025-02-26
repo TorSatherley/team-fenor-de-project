@@ -17,11 +17,6 @@ def json_to_pg8000_output(filepath, include_cols_in_output=True):
     # a dictionary
     data = json.load(f)
     
-    # Iterating through the json
-    # list
-    
-    #print(data)
-    
     for i in data:
         simulated_pg8000_output += [list(i.values())]
         
