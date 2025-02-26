@@ -54,3 +54,5 @@ import botocore
 #     def test_get_secret_returns_client_error(self, mock_secrets_client):
 #         with pytest.raises(botocore.exceptions.ClientError):
 #             get_secret(client=mock_secrets_client)
+def mock_test():
+    pass
