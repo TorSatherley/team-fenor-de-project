@@ -26,13 +26,4 @@ def get_secret(client):
     secret = get_secret_value_response["SecretString"]
     secrets = json.loads(secret)
 
-    return {
-        "secret": {
-            "username": secrets["username"],
-            "password": secrets["password"],
-            "dbname": secrets["dbname"],
-            "port": secrets["port"],
-            "engine": secrets["engine"],
-            "host": secrets["host"],
-        }
-    }
+    return secrets

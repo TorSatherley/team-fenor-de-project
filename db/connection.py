@@ -11,10 +11,10 @@ def create_conn():
     db_credentials = get_secret(client)
 
     db_connection = Connection(
-        database=db_credentials["secret"]["dbname"],
-        user=db_credentials["secret"]["username"],
-        password=db_credentials["secret"]["password"],
-        host=db_credentials["secret"]["host"],
+        database=db_credentials["dbname"],
+        user=db_credentials["username"],
+        password=db_credentials["password"],
+        host=db_credentials["host"],
     )
 
     return db_connection
