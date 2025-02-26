@@ -1,3 +1,4 @@
+
 variable "s3_ingestion_bucket_arn" {
   type = string
 }

@@ -38,7 +38,7 @@ data "archive_file" "lambda_transform_layer" {
 }
 
 resource "aws_lambda_layer_version" "lambda_transform_layer" {
-  layer_name          = "${var.lambda_extract_handler}_layer"
+  layer_name          = "${var.lambda_transform_handler}_layer"
   filename            = data.archive_file.lambda_transform_layer.output_path
   source_code_hash    = data.archive_file.lambda_transform_layer.output_base64sha256
   compatible_runtimes = ["python3.13", "python3.12", "python3.11", "python3.10", "python3.9"]

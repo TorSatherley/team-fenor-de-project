@@ -1,6 +1,4 @@
-######################
-###  Vars // AWS 
-######################
+# AWS
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
@@ -25,9 +23,7 @@ variable "default_tags" {
   }
 }
 
-######################
-### Vars // S3 buckets
-######################
+# S3 buckets
 
 variable "s3_ingestion_bucket" {
   type    = string
@@ -44,9 +40,7 @@ variable "s3_logging_bucket" {
   default = "totesys-data-logging-fenor"
 }
 
-######################
-### Vars // Function names 
-######################
+# Function names
 
 variable "lambda_extract_handler" {
   type    = string
@@ -63,6 +57,7 @@ variable "lambda_load_handler" {
   default = "lambda_load_handler"
 }
 
+# Step Functions State Machine
 
 variable "totesys_etl_pipeline" {
   default = "totesys-etl-pipeline"
