@@ -16,7 +16,7 @@ def get_secret(client):
 
     load_dotenv()
 
-    secret_name = os.environ.get('SECRET_NAME')
+    secret_name = 'totesys-db-credentials'
 
     try:
         get_secret_value_response = client.get_secret_value(
