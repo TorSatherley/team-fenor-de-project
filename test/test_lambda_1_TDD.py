@@ -159,7 +159,7 @@ class Test_write_table_to_s3:
 
 
 class Test_lambda_hander:
-    @mock.patch.dict(os.environ, {"S3_BUCKET_INGESTION": "totesys-ingestion-zone-fenor-dummy-test"}, clear=True)
+    #@mock.patch.dict(os.environ, {"S3_BUCKET_INGESTION": "totesys-ingestion-zone-fenor-dummy-test"}, clear=True)
     def test_2a_all_tables_are_digested_once__mocked(self, s3_client, hardcoded_variables, snapshot_data_dict, mock_s3_bucket_name):
         """
         This test verifies that the lambda handler when fed controlled values for the conn.run method, can populate a s3 bucket correctly.
@@ -177,16 +177,16 @@ class Test_lambda_hander:
         nested_list_of_pg8000_returned_rows = [snapshot_data_dict[table_name]["rows"] for table_name in hardcoded_variables["list_of_tables"]]
         nested_list_of_pg8000_returned_cols = [snapshot_data_dict[table_name]["cols"] for table_name in hardcoded_variables["list_of_tables"]]
         
-        
+        print("ddd")
         # act
         with patch("pg8000.native.Connection.run", side_effect=[hardcoded_variables["list_of_tables"]] + nested_list_of_pg8000_returned_rows):
             with patch("pg8000.native.Connection.columns", side_effect=nested_list_of_pg8000_returned_cols):
                 lambda_handler(event, DummyContext)
                     
         # assert - do all the files exist?
-        actual_list_of_s3_filepaths = s3_client.list_objects(Bucket=hardcoded_variables["target_bucket_name"])
-        #pprint(actual_list_of_s3_filepaths)
-        pprint(set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"]))
+        actual_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["target_bucket_name"])
+        pprint(actual_list_of_s3_filepaths)
+        # pprint(set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"]))
         
         #assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"])
         #

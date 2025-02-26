@@ -75,14 +75,17 @@ def lambda_handler(event, context):
         table_query = conn.run("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE '!_%' ESCAPE '!'")
         table_names =  [table[0] for table in table_query]
         
+        print(f"table_query {table_query}, {len(table_query)}")
+        
         for table in table_names:
             # Query the table
             #columns_query = conn.run(f"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '{table}'")
             #columns = [column[0] for column in columns_query]
             rows = conn.run(f"SELECT * FROM {table}")
             columns = conn.columns()
-
+            print(f"bucket_name {bucket_name}")
             # Convert to pandas df, format JSON file, and upload file to S3 bucket
+            print("entering write_table_to_s3")
             key = write_table_to_s3(s3_client, rows, columns, bucket_name, table)
             keys.append(key)
         
@@ -97,6 +100,8 @@ def lambda_handler(event, context):
 
         
 def write_table_to_s3(s3_client, rows, columns, bucket, table):
+    print("inside write_table_to_s3")
+    print(f"bucket {bucket}")
     timestamp = datetime.now()
     year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
     key = f'data/{table}/{year}-{month}-{day}_{hour}-{minute}/{table}.json'
