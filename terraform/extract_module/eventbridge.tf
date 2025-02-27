@@ -2,7 +2,7 @@ resource "aws_cloudwatch_event_rule" "lambda_extract_trigger" {
   name                = "lambda-extract-trigger"
   description         = "Triggers EventBridge event to extract"
   schedule_expression = "cron(0/2 * * * ? *)"
-  state = "DISABLED"
+  state = var.enable-disable-eventbridge
     tags = merge(
     var.default_tags,
     {
