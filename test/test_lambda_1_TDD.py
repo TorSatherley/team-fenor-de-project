@@ -21,13 +21,13 @@ Intro:
 
 Functions tested:
     - write_file_to_s3
-        test this!!!
+        test this!!!!!
 
     - connect_to_db?
     - close_db_connection?
         unsure how and if I should test these (maybe check what was done on other exercises)
 
-    - get_rows_and_columns_from_table??
+    - get_rows_and_columns_from_table?
         maybe
 
 PS:
