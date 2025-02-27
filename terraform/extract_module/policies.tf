@@ -1,9 +1,4 @@
-######################
-### Lambda Extract Policies
-### - lambda_extract_invoke
-### - lambda_extract_cloudwatch_logs
-### - lambda_extract_s3_full_access
-######################
+# Lambda Extract - Policies
 
 resource "aws_iam_policy" "lambda_extract_invoke" {
   name        = "LambdaInvokePolicy"
@@ -62,6 +57,26 @@ resource "aws_iam_policy" "lambda_extract_s3_full_access" {
         Action   = [
           "s3:*",
           "s3-object-lambda:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "lambda_extrat_secrets_manager_access" {
+  name        = "LambdaExtractSecretsManagerAccessPolicy"
+  description = "Allow Lambda Extract to access AWS Secrets Manager"
+
+  # Define the policy document
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
         Resource = "*"
       }
