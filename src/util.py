@@ -26,6 +26,7 @@ def json_to_pg8000_output(filepath, include_cols_in_output=True):
     # Closing file
     f.close()
     
+    
     return simulated_pg8000_output, simulated_pg8000_output_cols
     
     
