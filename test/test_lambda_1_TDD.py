@@ -31,7 +31,7 @@ Functions tested:
         maybe
 
 PS:
-    Please check the Trello for the over arching To-Do list!
+    Please check the Trello for the over arching to-do list! 
 
 Actions:
     - Remove the hardcoding
