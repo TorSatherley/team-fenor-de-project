@@ -79,7 +79,7 @@ resource "aws_s3_bucket_logging" "s3_logging_ingestion" {
   bucket        = aws_s3_bucket.data_ingestion_bucket.id
   target_bucket = aws_s3_bucket.data_logging_bucket.id
   target_prefix = "ingestion-logs/"
-  
+
 }
 
 resource "aws_s3_bucket_logging" "s3_logging_processed" {

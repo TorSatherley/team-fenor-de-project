@@ -32,4 +32,8 @@ variable "lambda_load_handler" {
 }
 
 
+variable "enable-disable-eventbridge" {
+  type    = string
+}
+
 
