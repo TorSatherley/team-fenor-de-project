@@ -5,7 +5,7 @@ import json
 from unittest.mock import Mock, patch
 from pprint import pprint
 from datetime import datetime
-from src.lambda_ingest import write_table_to_s3, lambda_handler
+from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output
 from unittest import mock
