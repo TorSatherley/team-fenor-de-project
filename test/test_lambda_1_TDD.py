@@ -4,10 +4,10 @@ from moto import mock_aws
 import json
 from unittest.mock import Mock, patch
 from pprint import pprint
+from datetime import datetime
 from src.lambda_ingest import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output
-import os
 from unittest import mock
 
 """
@@ -130,6 +130,7 @@ def return_s3_key__injection_bucket(table_name):
 
 #@pytest.mark.timeout(10)
 class Test_write_table_to_s3:
+
     @pytest.mark.skip()
     def test_1_expected_file_names_are_added_to_blank_s3(self, s3_client, hardcoded_variables, example_sales_order_table):
         """
@@ -159,6 +160,7 @@ class Test_write_table_to_s3:
 
 
 class Test_lambda_hander:
+
     #@mock.patch.dict(os.environ, {"S3_BUCKET_INGESTION": "totesys-ingestion-zone-fenor-dummy-test"}, clear=True)
     def test_2a_all_tables_are_digested_once__mocked(self, s3_client, hardcoded_variables, snapshot_data_dict, mock_s3_bucket_name):
         """
@@ -169,7 +171,6 @@ class Test_lambda_hander:
             should:
             then populate s3 bucket as logic is designed to do
         """
-
             
         # assemble  
         # s3_mock_client = boto3.client("s3")
@@ -184,17 +185,18 @@ class Test_lambda_hander:
                 lambda_handler(event, DummyContext)
                     
         # assert - do all the files exist?
-        actual_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["target_bucket_name"])
-        pprint(actual_list_of_s3_filepaths)
+        # actual_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["target_bucket_name"])
+        # pprint(actual_list_of_s3_filepaths)
         # pprint(set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"]))
         
-        #assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"])
+        # assert set(actual_list_of_s3_filepaths) == set(return_s3_key__injection_bucket(table_name) for table_name in hardcoded_variables["list_of_tables"])
         #
         ## assert - does data match?
-        #def placeholder_function_for_checking_data_placed_into_s3_folder(table_name):
+        # def placeholder_function_for_checking_data_placed_into_s3_folder(table_name):
         #    return True
-        #for table_name in hardcoded_variables["list_of_toteSys_tables"]:
+        # for table_name in hardcoded_variables["list_of_toteSys_tables"]:
         #    assert placeholder_function_for_checking_data_placed_into_s3_folder(table_name) == True
+
                 
                 
                 

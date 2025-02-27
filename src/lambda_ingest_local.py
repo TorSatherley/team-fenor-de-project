@@ -7,6 +7,10 @@ import boto3
 from botocore.exceptions import ClientError
 from pg8000.native import Connection
 import pandas as pd
+from dotenv import load_dotenv  # Must remove for AWS Lambda
+
+# Load .env file
+load_dotenv()  # Must remove for AWS Lambda
 
 
 def get_secret(client):
@@ -153,3 +157,8 @@ def lambda_handler(event, context):
         return {"message": "Success"}
     except ClientError as e:
         return {"message": "Error", "details": str(e)}
+
+
+if __name__ == "__main__":  # Must remove for AWS Lambda
+    result = lambda_handler(None, None)  # Must remove for AWS Lambda
+    print(result)  # Must remove for AWS Lambda
