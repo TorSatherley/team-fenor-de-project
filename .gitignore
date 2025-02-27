@@ -20,3 +20,4 @@ venv/
 **/.terraform*
 *.tfstate*
 .env
+venv.nosync

@@ -4,15 +4,14 @@ from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 import json
 
+
 load_dotenv() # Must remove for AWS Lambda
 client = boto3.client(service_name='secretsmanager', region_name="eu-west-2")
 
 
+
 def get_secret(client):
-    """
-    function uses aws secret manager to retreive sensitive credentials
-    """
-    
+    """function uses aws secret manager to retreive sensitive credentials"""
     secret_name = os.environ.get("SECRET_NAME")
 
 
