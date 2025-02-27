@@ -4,7 +4,7 @@ from moto import mock_aws
 import json
 from unittest.mock import Mock, patch
 from pprint import pprint
-from src.dummy_lambda_ingest import write_table_to_s3, lambda_handler
+from src.lambda_ingest import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output
 import os
