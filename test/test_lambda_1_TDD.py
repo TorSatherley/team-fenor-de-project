@@ -1,14 +1,34 @@
 import pytest
 import boto3
+import os
 from moto import mock_aws
 import json
 from unittest.mock import Mock, patch
 from pprint import pprint
 from datetime import datetime
-from src.lambda_extract import get_secret, create_conn, write_table_to_s3, lambda_handler
+from terraform.extract_module.src.lambda_extract import get_secret, create_conn, write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output
-from unittest import mock
+
+@pytest.fixture(scope="function", autouse=True)
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
+    os.environ["SECRET_NAME"] = "test-secret"
+
+@pytest.fixture(scope="session")
+def mock_db():
+    '''Runs seed before starting tests. 
+       Yields a database connection object to be used in tests. 
+       Closes connection to db after tests have ran'''
+    test_db = create_conn()
+    yield test_db
+    test_db.close()
+
 
 """
 test_lambda_1_TDD.py
@@ -123,6 +143,10 @@ def return_s3_key__injection_bucket(table_name):
     return f'data/{table_name}/{year}-{month}-{day}_{hour}-{minute}/{table_name}.json'
     
 
+@pytest.fixture
+def mock_secrets_client():
+    with mock_aws():
+        yield boto3.client("secretsmanager", region_name="eu-west-2")
 
 
 #%% Tests
@@ -161,8 +185,9 @@ class Test_write_table_to_s3:
 
 class Test_lambda_hander:
 
-    #@mock.patch.dict(os.environ, {"S3_BUCKET_INGESTION": "totesys-ingestion-zone-fenor-dummy-test"}, clear=True)
-    def test_2a_all_tables_are_digested_once__mocked(self, s3_client, hardcoded_variables, snapshot_data_dict, mock_s3_bucket_name):
+    @mock_aws
+    # @mock.patch.dict(os.environ, {"S3_BUCKET_INGESTION": "totesys-ingestion-zone-fenor-dummy-test"}, clear=True)
+    def test_2a_all_tables_are_digested_once__mocked(self, s3_client, mock_db, hardcoded_variables, snapshot_data_dict, mock_s3_bucket_name, mock_secrets_client):
         """
         This test verifies that the lambda handler when fed controlled values for the conn.run method, can populate a s3 bucket correctly.
 
@@ -171,9 +196,28 @@ class Test_lambda_hander:
             should:
             then populate s3 bucket as logic is designed to do
         """
-            
         # assemble  
         # s3_mock_client = boto3.client("s3")
+        secret_value = {
+            "username": "test_user",
+            "password": "test_pass",
+            "dbname": "test_db",
+            "port": "1234",
+            "engine": "test_engine",
+            "host": "test_host",
+        }
+        
+        mock_secrets_client.create_secret(
+            Name="test-secret", SecretString=json.dumps(secret_value)
+        )
+
+        secret = mock_secrets_client.get_secret_value(SecretId="test-secret")
+        print(secret['SecretString'])
+
+        
+        print(mock_db)
+
+
         event = {}
         nested_list_of_pg8000_returned_rows = [snapshot_data_dict[table_name]["rows"] for table_name in hardcoded_variables["list_of_tables"]]
         nested_list_of_pg8000_returned_cols = [snapshot_data_dict[table_name]["cols"] for table_name in hardcoded_variables["list_of_tables"]]
