@@ -12,7 +12,7 @@ resource "aws_lambda_function" "lambda_load_handler" {
 
 data "archive_file" "lambda_load_package" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
+  source_dir  = "../src"
   output_path = "${path.module}/src/lambda_load.zip"
 }
 

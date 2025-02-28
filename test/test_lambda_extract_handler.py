@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 import pg8000.native
 from unittest.mock import patch, Mock
-from terraform.extract_module.src.lambda_extract import get_secret, get_rows_and_columns_from_table
+from lambda_extract import get_secret, get_rows_and_columns_from_table
 import datetime
 from seed import create_conn
 
