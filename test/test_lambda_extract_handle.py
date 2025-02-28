@@ -1,5 +1,6 @@
 import os
 import json
+import pytest
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 from src.lambda_extract import (
@@ -42,7 +43,7 @@ def test_get_secret():
         }
     }
 
-# create_conn
+
 def test_create_conn():
     mock_get_secret_return_value = {
         "secret": {
@@ -54,8 +55,8 @@ def test_create_conn():
             "host": "test_host",
         }
     }
-    with patch("src.lambda_ingest_dummy.get_secret") as mock_get_secret, \
-        patch ("src.lambda_ingest_dummy.Connection") as mock_Connection:
+    with patch("src.lambda_extract.get_secret") as mock_get_secret, \
+        patch ("src.lambda_extract.Connection") as mock_Connection:
         mock_get_secret.return_value = mock_get_secret_return_value
         mock_conn = Mock()
         mock_Connection.return_value = mock_conn
@@ -91,10 +92,36 @@ def test_get_rows_and_columns_from_table():
     assert rows == [["val1", "val2"], ["val3", "val4"]]
 
 
-@patch("lambda_extract.create_conn")
-@patch("lambda_extract.get_rows_and_columns_from_table")
-@patch("lambda_extract.write_table_to_s3")
-@patch("lambda_extract.log_file")
-@patch("lambda_extract.close_db")
-def test_lambda_handler():
-    pass
+
+
+@patch("src.lambda_extract.create_conn")
+@patch("src.lambda_extract.get_rows_and_columns_from_table")
+@patch("src.lambda_extract.write_table_to_s3")
+@patch("src.lambda_extract.log_file")
+@patch("src.lambda_extract.close_db")
+def test_lambda_handler(mock_create_conn, mock_get_rows_columns, mock_wite_s3, mock_log_file, mock_close_db, ):
+
+    # create some table names that will serve as the return from create_conn
+    # mock create conn return value
+    mock_create_conn.return_value = [["address"], ["staff"]]
+
+    # mock the output of get_rows_and_columns_from_tables in the handler for loop. This will be called twice in this mock,
+    # once for 'addess' and 'staff'. Side_effect enables mocking of multiple calls to a function. 
+    mock_get_rows_columns.side_effect = [
+        ( # address table
+            [
+                [1, "123 Northcode Road", "Leeds"],
+                [2, "66 Fenor Drive", "Manchester"]
+            ],
+            ["address_ID", "address", "city"]
+        ),
+        ( # staff table
+            [
+                [1, "Connor", "Creed", "creedmoney@gmail.com"],
+                [2, "Brendan", "Corbett", "yeaaboii@hotmail.co.uk"]
+            ],
+            ["staff_ID", "first_name", "last_name", "email"]
+        )
+    ]
+
+    mock_wite_s3.side_effect
