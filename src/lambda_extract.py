@@ -106,7 +106,7 @@ def lambda_handler(event, context):
 
     # Create connection
     conn = create_conn()
-
+    print(conn)
     try:
         keys = []
 
@@ -114,12 +114,13 @@ def lambda_handler(event, context):
         table_query = conn.run(
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE '!_%' ESCAPE '!'"
         )
+        print(table_query, '<<<< table query')
         table_names = [table[0] for table in table_query]
-
+        print(table_names)
         for table in table_names:
             # Query the table
             rows, columns = get_rows_and_columns_from_table(conn, table)
-
+            print(rows, columns)
             # Convert to pandas df, format JSON file, and upload file to S3 bucket
             key = write_table_to_s3(s3_client, table, rows, columns)
             keys.append(key)
