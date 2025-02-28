@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 import boto3
-from datetime import datetime
+from datetime import datetime, date
 from unittest.mock import MagicMock, Mock, patch
 from src.lambda_extract import (
     get_secret,
@@ -106,22 +106,25 @@ def test_get_rows_and_columns_from_table():
 @patch("src.lambda_extract.log_file")
 @patch("src.lambda_extract.close_db")
 def test_lambda_handler(
-    mock_create_conn,
-    mock_get_rows_columns,
-    mock_write_table_to_s3,
     mock_close_db,
-    mock_log_file
+    mock_log_file,
+    mock_write_table_to_s3,
+    mock_get_rows_columns,
+    mock_create_conn,
+    capsys
     ):
 
     # ASSEMBLE:
 
     # create some table names that will serve as the return from create_conn
     # mock create conn return value
-    mock_conn = Mock()
+    mock_conn = MagicMock()
     mock_conn.run.return_value = [("address",), ("staff",)]
 
     mock_create_conn.return_value = mock_conn
-
+    # print('mock_create_conn return_value:', mock_create_conn.run.return_value)
+    # print(mock_conn().run(), '<<<< create_conn().run()')
+    # print("Mock return value for create_conn.run:", mock_conn.run())
 
 
 
@@ -160,12 +163,21 @@ def test_lambda_handler(
     mock_s3_client = boto3.client("s3")
 
     # ACT:
+    mock_conn = MagicMock()
+    mock_conn.run.return_value = [("address",), ("staff",)]
 
-    with patch("src.lambda_extract.s3_client", mock_s3_client), patch("src.lambda_extract.datetime") as mock_datetime:
-        mock_datetime.return_value.strftime.return_value = "2025-03-28_11-38-56"
+    mock_create_conn.return_value = mock_conn
 
-        # call the handler with the above patches inplace
-        result = lambda_handler(event, context)
+
+    with patch("src.lambda_extract.s3_client", mock_s3_client):
+        with patch("src.lambda_extract.datetime") as mock_datetime:
+            test_date = date(2025, 7, 23)
+            mock_datetime.today.return_value = test_date
+            # .today.strftime
+            mock_datetime.side_effect = lambda *args, **kw: datetime.strftime(*args, **kw)
+            
+            # call the handler with the above patches inplace
+            result = lambda_handler(event, context)
 
     # ASSERT:
 
@@ -173,9 +185,20 @@ def test_lambda_handler(
 
     mock_create_conn.assert_called_once()
     
-    #mock_get_rows_columns.assert_any_call(mock_conn, "address")
-    #mock_get_rows_columns.assert_any_call(conn, "staff")
-    #
+    mock_get_rows_columns.assert_any_call(mock_conn, "address")
+    mock_get_rows_columns.assert_any_call(mock_conn, "staff")
+
+    mock_write_table_to_s3.assert_any_call(mock_s3_client, 'address', [[1, '123 Northcode Road', 'Leeds'], [2, '66 Fenor Drive', 'Manchester']], ["address_ID", "address", "city"])
+    mock_write_table_to_s3.assert_any_call(mock_s3_client, 'staff', [[1, 'Connor', 'Creed', 'creedmoney@gmail.com'], [2, 'Brendan', 'Corbett', 'yeaaboii@hotmail.co.uk']], ['staff_ID', 'first_name', 'last_name', 'email'])
+
+    mock_log_file.assert_called_once()
+    mock_log_file.assert_called_with(mock_s3_client, ["data/2025/03/28_11-15-28/address.json", "data/2025/03/28_11-15-31/staff.json"])
+
+    mock_close_db.assert_called_once()
+    mock_close_db.assert_called_with(mock_conn)
+
+    captured = capsys.readouterr()
+    assert captured.out == f"Log: Batch extraction completed - {test_date.strftime('%Y-%m-%d_%H-%M-%S')}\n"
 
 
 
