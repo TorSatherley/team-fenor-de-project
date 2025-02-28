@@ -68,7 +68,7 @@ resource "aws_cloudwatch_metric_alarm" "alarm_lambda_transform_errors" {
   comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [aws_sns_topic.alarms_for_errors.arn]
   dimensions = {
-    FunctionName = "lambda_extract_handler"
+    FunctionName = "lambda_transform_handler"
   }
 }
 
@@ -85,6 +85,6 @@ resource "aws_cloudwatch_metric_alarm" "alarm_lambda_load_errors" {
   comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [aws_sns_topic.alarms_for_errors.arn]
   dimensions = {
-    FunctionName = "lambda_extract_handler"
+    FunctionName = "lambda_load_handler"
   }
 }
