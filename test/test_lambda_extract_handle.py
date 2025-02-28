@@ -95,12 +95,6 @@ def test_get_rows_and_columns_from_table():
     assert rows == [["val1", "val2"], ["val3", "val4"]]
 
 
-# @pytest.fixture
-# @patch("src.lambda_extract.create_conn")
-# def mock_totesys_connection(mock_conn):
-#     mock_conn = Mock()
-#     return mock_conn
-
 
 # patch the namespaces of all of the util functions that lamba handler uses
 @patch("src.lambda_extract.create_conn")
