@@ -17,6 +17,12 @@ resource "aws_lambda_function" "lambda_extract_handler" {
     {
       Name = "Lambda: Extract from RDS"
     })
+  environment {
+    variables = {
+      SECRET_NAME = "totesys-db-credentials"
+      BUCKET_NAME = "totesys-ingestion-zone-fenor"
+    }
+  }
 }
 
 data "archive_file" "lambda_extract_package" {
