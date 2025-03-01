@@ -32,7 +32,7 @@ resource "null_resource" "pip_install" {
 # Lambda Layer Archive
 data "archive_file" "lambda_transform_layer" {
   type        = "zip"
-  source_dir  = "${path.module}/${var.lambda_transform_handler}_layer"
+  source_dir  = "${path.module}/src"
   output_path = "${path.module}/src/layer.zip"
   depends_on  = [null_resource.pip_install]
 }
