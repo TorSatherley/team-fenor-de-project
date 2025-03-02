@@ -1,76 +1,209 @@
-import json
-import os
 import boto3
-from decimal import Decimal
-import pytest
-from botocore.exceptions import ClientError
-from dotenv import load_dotenv
-import pg8000.native
-from unittest.mock import patch, Mock
-from lambda_extract import get_secret, get_rows_and_columns_from_table
-import datetime
-from seed import create_conn
+import os
+import json
+from datetime import datetime
+from moto import mock_aws
+from pathlib import Path
+from unittest.mock import patch, Mock, MagicMock
+from src.lambda_extract import lambda_handler, db_connection, get_secret
+
+TEST_BUCKET_NAME = "test-totesys"
+
 
 class TestGetSecret:
-    @pytest.mark.it("Secret is retrieved")
-    def test_get_secret_retrieves_secret(self, mock_secrets_client, mock_secret):
-        mock_secrets_client.create_secret(
-            Name="test-secret", SecretString=json.dumps(mock_secret)
-        )
-        response = get_secret(mock_secrets_client)
-
-        assert response == mock_secret
-
-    @pytest.mark.it("Getting a secret returns a client error")
-    def test_get_secret_returns_client_error(self, mock_secrets_client):
-        with pytest.raises(ClientError):
-            get_secret(client=mock_secrets_client)
-
-    @pytest.mark.it("Error is shown if secret does not exist")
-    def test_secret_does_not_exist(self, mock_secrets_client):
-        with pytest.raises(ClientError) as excinfo:
-            result = get_secret(mock_secrets_client)
-            mock_secrets_client.get_secret_value(SecretId="not-here")
-            assert "Secrets Manager can't find the specified secret" in str(excinfo['Error']['Message'])
-            assert result == "Error: Secrets Manager can't find the specified secret."
-
-
-    @pytest.mark.it('Environment variable is wrong or does not exist for secret')
+    @mock_aws
     @patch("dotenv.load_dotenv")
-    @patch.dict(os.environ, {"SECRET_NAME": "wrong_env"})
-    def test_wrong_or_no_dotenv_variable(self, mock_dotenv, mock_secrets_client):
+    @patch.dict(os.environ, {"SECRET_NAME": "totesys-key"})
+    def test_get_secret_value_is_found(self, mock_dotenv, mock_secrets_client):
 
-        load_dotenv()
+        conn = boto3.client('secretsmanager', region_name="eu-west-2")
+        conn.create_secret(Name="totesys-key", SecretString=json.dumps({
+            "dbname": "test_db",
+            "username": "test_user",
+            "password": "test_pass",
+            "host": "test_host"
+        }))
 
-        secret_id = os.getenv('SECRET_NAME')
-        assert secret_id == "wrong_env"
+        secret_value = get_secret()
+        assert secret_value == {
+            'dbname': 'test_db',
+            'username': 'test_user',
+            'password': 'test_pass',
+            'host': 'test_host'}
 
-        with pytest.raises(ClientError) as excinfo:
-            result = get_secret(mock_secrets_client)
-            assert "Secrets Manager can't find the specified secret" in str(excinfo['Error']['Message'])
-            assert result == "Error: Secrets Manager can't find the specified secret."
+    @mock_aws
+    @patch("dotenv.load_dotenv")
+    @patch.dict(os.environ, {"WRONG_ENV": "does-not-exist"})
+    def test_get_secret_error_when_no_env_variable(
+            self, mock_dotenv, mock_secrets_client):
+
+        secret_value = get_secret()
+
+        assert "can't find the specified secret" in secret_value["error"]
+
+    @mock_aws
+    @patch("dotenv.load_dotenv")
+    @patch.dict(os.environ, {"SECRET_NAME": "totesys-test-id"})
+    def test_get_secret_not_found(self, mock_dotenv):
+
+        result = get_secret()
+        print(result)
+        assert "can't find the specified secret" in result["error"]
+
+    @mock_aws
+    @patch("dotenv.load_dotenv")
+    @patch.dict(os.environ, {"SECRET_NAME": "totesys-test-id"})
+    def test_failed_to_retrieve_secret_for_credentials(
+            self, mock_dotenv, mock_secrets_client):
+
+        result = get_secret()
+
+        assert "can't find the specified secret" in result['error']
+
+    @mock_aws
+    @patch("dotenv.load_dotenv")
+    @patch.dict(os.environ, {"secret": "secret"})
+    def test_get_secret_does_not_find_secret_id(
+            self, mock_dotenv, mock_secrets_client):
+
+        result = get_secret()
+        assert "can't find the specified secret" in result['error']
+
 
 class TestConnection:
-    @pytest.mark.it("Connection to database is established and retrieves data")
-    def test_connection(self):
-        conn = create_conn()
-        result = conn.run("SELECT * FROM test_db LIMIT 1")
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.Connection')
+    def test_mock_connection_is_being_made_with_mock_credentials(
+            self, mock_connection, mock_get_secret):
+        # Mock get_secret with fake credentials
+        mock_get_secret.return_value = {
+            "dbname": "test_db",
+            "username": "test_user",
+            "password": "test_pass",
+            "host": "test_host"
+        }
 
-        assert result == [[2, datetime.datetime(2022, 11, 3, 14, 20, 52, 186000), datetime.datetime(2022, 11, 3, 14, 20, 52, 186000), 3, 19, 8, 42927, Decimal('3.94'), 2, datetime.date(2022, 11, 7), datetime.date(2022, 11, 8), 8]]
+        # Mock connection object - to be returned when db_connection is called
+        mock_connection_instance = MagicMock()
+        mock_connection.return_value = mock_connection_instance
 
-    @pytest.mark.it("Connection to database is successfully closed")
-    def test_connection_to_database_is_successfully_closed_with_close_db(self):
-        conn = create_conn()
-        conn.close()
-        with pytest.raises(pg8000.exceptions.InterfaceError, match="connection is closed"):
-            conn.close()
+        result = db_connection()
+
+        mock_connection.assert_called_once_with(
+            database='test_db',
+            user='test_user',
+            password='test_pass',
+            host='test_host'
+        )
+
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.Connection')
+    def test_db_connection_failure(self, mock_connection, mock_get_secret):
+        mock_get_secret.return_value = {
+            "dbname": "test_db",
+        }
+        result = db_connection()
+
+        assert result == {"error": "Missing credentials from DB connection"}
 
 
+class TestS3:
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.db_connection')
+    def test_objects_are_added_to_s3_with_lambda_handler(
+            self, mock_connection, mock_get_secret, mock_db_data, mock_s3):
+        mock_connection.return_value = mock_db_data
+        mock_s3.create_bucket(
+            Bucket=TEST_BUCKET_NAME,
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'})
 
-class TestRowsAndColumns:
-    @pytest.mark.it("Rows are rceived from DB")
-    def test_multiple_rows_are_received_from_DB(self):
-        conn = create_conn()
-        columns = list(get_rows_and_columns_from_table(conn, "test_db"))
+        result = lambda_handler({}, {})
 
-        assert columns[1] == ['sales_order_id', 'created_at', 'last_updated', 'design_id', 'staff_id', 'counterparty_id', 'units_sold', 'unit_price', 'currency_id', 'agreed_delivery_date', 'agreed_payment_date', 'agreed_delivery_location_id']
+        assert "Batch extraction job completed" in result['message']
+
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.db_connection')
+    def test_data_key_and_json_being_added_to_s3_by_lambda(
+            self, mock_connection, mock_get_secret, mock_db_data, mock_s3):
+        mock_connection.return_value = mock_db_data
+        mock_s3.create_bucket(
+            Bucket=TEST_BUCKET_NAME,
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'})
+
+        result = lambda_handler({}, {})
+        list_s3 = mock_s3.list_objects(Bucket=TEST_BUCKET_NAME)['Contents']
+        mock_s3_keys = [file['Key'] for file in list_s3]
+
+        assert any("data/" in key for key in mock_s3_keys)
+        assert any(".jsonl" in key for key in mock_s3_keys)
+
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.db_connection')
+    def test_log_file_being_added_to_s3_by_lambda(
+            self, mock_connection, mock_get_secret, mock_db_data, mock_s3):
+        mock_connection.return_value = mock_db_data
+        mock_s3.create_bucket(
+            Bucket=TEST_BUCKET_NAME,
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'})
+
+        result = lambda_handler({}, {})
+        list_s3 = mock_s3.list_objects(Bucket=TEST_BUCKET_NAME)['Contents']
+        mock_s3_keys = [file['Key'] for file in list_s3]
+        print(mock_s3_keys)
+
+        assert any("logs/" in key for key in mock_s3_keys)
+        assert any(".log" in key for key in mock_s3_keys)
+        # assert ".log" in any(mock_s3_keys)
+
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.db_connection')
+    def test_s3_bucket_not_found(
+            self, mock_connection, mock_get_secret, mock_s3, mock_db_data):
+        # Simulate S3 bucket not found
+        mock_s3.create_bucket(
+            Bucket="does-not-exist",
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'})
+
+        bucket_name = "does not exist"
+
+        result = lambda_handler({}, {})
+
+        err = {
+            'error': 'An error occurred (NoSuchBucket) when calling the PutObject operation: The specified bucket does not exist'}
+        assert result == err
+
+
+class TestData:
+    @patch('src.lambda_extract.get_secret')
+    @patch('src.lambda_extract.db_connection')
+    def test_data_can_be_read_from_file_in_s3_bucket_as_json(
+            self, mock_connection, mock_get_secret, mock_db_data, mock_s3):
+        mock_connection.return_value = mock_db_data
+        mock_s3.create_bucket(
+            Bucket=TEST_BUCKET_NAME,
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'})
+
+        filepath = 'test/data/address.jsonl'
+        table_name = Path(filepath).stem
+
+        result = lambda_handler({}, {})
+
+        list_s3 = mock_s3.list_objects_v2(Bucket=TEST_BUCKET_NAME)['Contents']
+        mock_s3_keys = [file['Key'] for file in list_s3]
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        response = mock_s3.get_object(
+            Bucket="test-totesys",
+            Key=f"data/{timestamp}/{table_name}.jsonl")
+        file_content = response["Body"].read().decode("utf-8")
+
+        print("FILE CONTENT", file_content)
+
+        assert any(
+            f"data/{timestamp}/{table_name}" in key for key in mock_s3_keys)
+        assert any(".jsonl" in key for key in mock_s3_keys)

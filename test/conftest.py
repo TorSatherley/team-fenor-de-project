@@ -1,9 +1,13 @@
 import pytest
 import os
 import boto3
+import json
+from pathlib import Path
 from moto import mock_aws
-from unittest.mock import Mock, patch
-import pg8000.native
+from unittest.mock import MagicMock
+
+TEST_BUCKET_NAME = "test-totesys"
+
 
 @pytest.fixture(scope="function", autouse=True)
 def aws_credentials():
@@ -16,63 +20,47 @@ def aws_credentials():
     os.environ["SECRET_NAME"] = "test-secret"
 
 
-
-
-
 @pytest.fixture(scope="function")
-def s3(aws_credentials):
+def mock_s3(aws_credentials):
     with mock_aws():
-        yield boto3.client("s3", region_name="eu-west-2")
-
-@pytest.fixture(scope="function")
-def mock_empty_s3(aws_credentials):
-    with mock_aws():
-        yield boto3.client("s3", region_name="eu-west-2")
-
-@pytest.fixture
-def mock_secret(mock_empty_s3):
-    return {
-        "dbname": "test_db",
-        "username": "test_user",
-        "password": "test_password",
-        "host": "localhost"
-        }
+        s3_client = boto3.client('s3')
+        yield s3_client
 
 
 @pytest.fixture
 def mock_secrets_client():
     with mock_aws():
-        yield boto3.client("secretsmanager", region_name="eu-west-2")
+        secrets_client = boto3.client(
+            "secretsmanager", region_name="eu-west-2")
+        yield secrets_client
 
 
+def json_to_tuples(filepath, table_name):
+    with open(filepath) as json_file:
+        json_content = json.load(json_file)
 
-BUCKET_NAME = "test_bucket"
-FILES = [
-    "address",
-    "counterparty",
-    "currency",
-    "department",
-    "design",
-    "payment_type",
-    "payment",
-    "purchase_order",
-    "sales_order",
-    "staff",
-    "transaction",
-]
+    column_names = [column for column in json_content[0].keys()]
+
+    data = [[(f"{table_name}",)], [(f"{column}",)
+                                   for column in json_content[0].keys()]]
+
+    rows = []
+
+    for idx, column in enumerate(column_names):
+        row = tuple(f"{row}" for row in json_content[idx].values())
+        rows.append(row)
+
+    data.append(rows)
+    return data
+
+
+filepath = 'test/data/address.jsonl'
+table_name = Path(filepath).stem
+data = json_to_tuples(filepath, table_name)
+
 
 @pytest.fixture
-def bucket(s3):
-    s3.create_bucket(
-        Bucket=BUCKET_NAME,
-        CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-    )
-
-    for file in FILES:
-            file_path = f"test/test_data/{file}.json"
-            s3_key = f"data/2025_02_27__1030/{file}.json"
-
-            # Read JSON file and upload to S3
-            with open(file_path, "r") as json_file:
-                text_to_write = json_file.read()
-                s3.put_object(Body=text_to_write, Bucket=BUCKET_NAME, Key=s3_key)
+def mock_db_data():
+    mock_db_table = MagicMock()
+    mock_db_table.run.side_effect = data
+    return mock_db_table
