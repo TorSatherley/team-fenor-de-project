@@ -66,9 +66,7 @@ def get_rows_and_columns_from_table(conn, table):
         return [], []
 
 
-def write_table_to_s3(
-    s3_client, bucket_name, table, rows, columns, date_and_time
-):
+def write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_time):
     """Converts table data to JSON and uploads it to S3."""
     try:
         if not rows or not columns:
@@ -127,14 +125,16 @@ def lambda_handler(event, context):
         )
         table_names = [table[0] for table in table_query]
 
-        date_and_time = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+        date_and_time = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
 
         for table in table_names:
             # Query the table
             rows, columns = get_rows_and_columns_from_table(conn, table)
 
             # Convert to pandas df, format JSON file, and upload file to S3 bucket
-            key = write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_time)
+            key = write_table_to_s3(
+                s3_client, bucket_name, table, rows, columns, date_and_time
+            )
             keys.append(key)
 
         # Write log file to S3 bucket
