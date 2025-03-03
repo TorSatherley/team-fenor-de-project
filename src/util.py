@@ -1,5 +1,10 @@
 import json
- 
+from  datetime import datetime
+import boto3
+import io
+import pandas as pd
+
+
 
 def json_to_pg8000_output(filepath, include_cols_in_output=True):
     """
@@ -27,5 +32,26 @@ def json_to_pg8000_output(filepath, include_cols_in_output=True):
     
     
     return simulated_pg8000_output, simulated_pg8000_output_cols
+
+def return_datetime_string():
+    timestamp = datetime.now()
+    year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
+    return f'{year}-{month}-{day}_{hour}-{minute}'
+
+def return_s3_key__injection_bucket(table_name, datetime_string):
+    return f'data/{table_name}/{datetime_string}/{table_name}.json'
+
+
+def simple_read_parquet_file_into_dataframe(bucket_name,key, s3_client):
+    """source: https://stackoverflow.com/questions/51027645/how-to-read-a-single-parquet-file-in-s3-into-pandas-dataframe-using-boto3
+    """
+    # Read the parquet file
+    buffer = io.BytesIO()
+    object = s3_client.Object(bucket_name,key)
+    object.download_fileobj(buffer)
+    df = pd.read_parquet(buffer)
+    return df
     
+
+
     
