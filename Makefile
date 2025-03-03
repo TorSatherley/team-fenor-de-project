@@ -1,3 +1,4 @@
+include .env
 PROJECT_NAME = project-fenor
 REGION = eu-west-2
 PYTHON_INTERPRETER = python

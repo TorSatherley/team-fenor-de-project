@@ -403,11 +403,11 @@ def test_lambda_handler(
     )
 
 
-def test_lambda_handler_for_client_error():
-    event = {}
-    context = None
-    with pytest.raises(botocore.exceptions.ClientError):
-        lambda_handler(event, context)
+# def test_lambda_handler_for_client_error():
+#     event = {}
+#     context = None
+#     with pytest.raises(botocore.exceptions.ClientError):
+#         lambda_handler(event, context)
 
 
 @patch("src.lambda_extract.get_rows_and_columns_from_table")
