@@ -403,11 +403,11 @@ def test_lambda_handler(
     )
 
 
-# def test_lambda_handler_for_client_error():
-#     event = {}
-#     context = None
-#     with pytest.raises(botocore.exceptions.ClientError):
-#         lambda_handler(event, context)
+def test_lambda_handler_for_client_error():
+    event = {}
+    context = None
+    with pytest.raises(botocore.exceptions.ClientError):
+        lambda_handler(event, context)
 
 
 @patch("src.lambda_extract.get_rows_and_columns_from_table")
@@ -434,7 +434,9 @@ def test_using_return_for_put_s3_error(mock_create_conn, mock_get_rows_columns):
 
     event = {}
     context = None
+    print('got to line 437')
     result = lambda_handler(event, context)
+    print('got to line 439')
     print(result)
     assert (
         "An error occurred (AccessDenied) when calling the PutObject operation: Access Denied"
