@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 import pandas as pd
 from pg8000.native import Connection
 
@@ -23,7 +23,7 @@ def get_secret(sm_client, secret_name):
         secret = get_secret_value_response["SecretString"]
         secrets = json.loads(secret)
         return secrets
-    except (ClientError, json.JSONDecodeError) as e:
+    except (ClientError, NoCredentialsError, json.JSONDecodeError, KeyError) as e:
         raise e
 
 
@@ -67,7 +67,7 @@ def get_rows_and_columns_from_table(conn, table):
 
 
 def write_table_to_s3(
-    s3_client, bucket_name, table, rows, columns, static_time, date_today
+    s3_client, bucket_name, table, rows, columns, date_and_time
 ):
     """Converts table data to JSON and uploads it to S3."""
     try:
@@ -76,7 +76,7 @@ def write_table_to_s3(
             return None
         df = pd.DataFrame(data=rows, columns=columns)
         json_data = df.to_json(orient="records", lines=False, date_format="iso")
-        key = f"data/{date_today}_{static_time}/{table}.json"
+        key = f"data/{date_and_time}/{table}.jsonl"
         s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
         return key
     except (ValueError, ClientError, Exception) as e:
@@ -127,17 +127,14 @@ def lambda_handler(event, context):
         )
         table_names = [table[0] for table in table_query]
 
-        static_time = datetime.now().strftime("%H-%M-%S")
-        date_today = datetime.now().strftime("%Y-%m-%d")
+        date_and_time = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
 
         for table in table_names:
             # Query the table
             rows, columns = get_rows_and_columns_from_table(conn, table)
 
             # Convert to pandas df, format JSON file, and upload file to S3 bucket
-            key = write_table_to_s3(
-                s3_client, bucket_name, table, rows, columns, static_time, date_today
-            )
+            key = write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_time)
             keys.append(key)
 
         # Write log file to S3 bucket

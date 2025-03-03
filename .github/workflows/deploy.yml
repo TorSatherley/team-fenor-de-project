@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - CICD-updates
+      - lambda-2-coverage-for-utils-Vincent
   pull_request:
     branches:
       - main
