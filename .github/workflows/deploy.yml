@@ -17,6 +17,7 @@ jobs:
     env:
       AWS_REGION: eu-west-2
       AWS_DEFAULT_REGION: eu-west-2
+      SECRET_NAME: ${{ secrets.SECRET_NAME }}
 
     steps:
       - name: Checkout and clone repo
