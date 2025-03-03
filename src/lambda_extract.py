@@ -29,26 +29,17 @@ def get_secret(client):
     secret = get_secret_value_response["SecretString"]
     secrets = json.loads(secret)
 
-    return {
-        "secret": {
-            "username": secrets["username"],
-            "password": secrets["password"],
-            "dbname": secrets["dbname"],
-            "port": secrets["port"],
-            "engine": secrets["engine"],
-            "host": secrets["host"],
-        }
-    }
+    return secrets
 
 
 def create_conn():
     """Establishes a connection to the database using secrets."""
     db_credentials = get_secret(client)
     db_connection = Connection(
-        database=db_credentials["secret"]["dbname"],
-        user=db_credentials["secret"]["username"],
-        password=db_credentials["secret"]["password"],
-        host=db_credentials["secret"]["host"],
+        database=db_credentials["dbname"],
+        user=db_credentials["username"],
+        password=db_credentials["password"],
+        host=db_credentials["host"],
     )
     return db_connection
 
