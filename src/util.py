@@ -42,7 +42,7 @@ def return_s3_key__injection_bucket(table_name, datetime_string):
     return f'data/{table_name}/{datetime_string}/{table_name}.json'
 
 
-def simple_read_parquet_file_into_dataframe(bucket_name,key, s3_client):
+def simple_read_parquet_file_into_dataframe(bucket_name, key, s3_client):
     """source: https://stackoverflow.com/questions/51027645/how-to-read-a-single-parquet-file-in-s3-into-pandas-dataframe-using-boto3
     """
     # Read the parquet file

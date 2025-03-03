@@ -154,6 +154,12 @@ def lambda_handler(event, context):
 
         # Close the connection to RDS database
         close_db(conn)
+        
+        if event["testing"] != None:
+            response["testing_result"] = event["testing"]
+        
+        
+        
         return {"message": "Success"}
     except ClientError as e:
         return {"message": "Error", "details": str(e)}

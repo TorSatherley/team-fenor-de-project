@@ -9,12 +9,12 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output
 from unittest import mock
-from src.lambda_2_dummy import read_s3_table_json, create_sales_table
+from src.lambda_2 import read_s3_table_json, create_sales_table
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 
 """
-test_lambda_1_TDD.py
+test_lambda_2_TDD.py
 Author: Fabio Greenwood
 
 Intro:
@@ -191,7 +191,7 @@ class Test_read_s3_table_json:
         
         
         # act
-        actual_df = read_s3_table_json(s3_client, return_s3_key__injection_bucket(target_table_name, original_invocation_time_string))
+        actual_df = read_s3_table_json(s3_client, return_s3_key__injection_bucket(target_table_name, original_invocation_time_string), hardcoded_variables["ingestion_bucket_name"], hardcoded_variables["processing_bucket_name"])
         
         
         # assert - the cities are extracting correctly
