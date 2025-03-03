@@ -7,7 +7,7 @@ from pprint import pprint
 from datetime import datetime
 from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
-from src.util import json_to_pg8000_output, return_s3_key__injection_bucket
+from src.util import json_to_pg8000_output, return_s3_key__injection_bucket, return_s3_key__processed_bucket
 from unittest import mock
 from src.lambda_2 import read_s3_table_json, create_sales_table
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
@@ -31,6 +31,8 @@ Requirement Spec:
         a. formats of tables? maybe start at one then get more advanced
     
     3. Must stores the data in Parquet format in the "processed" S3 bucket.
+        a. start off with just doing one simple table (this will imform your decisions)
+    
     4. Data must conform to the warehouse schema (TASK: please insert diagram from git readme). 
     5. Must be triggered by either an S3 event triggered when data lands in the ingestion bucket, 
     6. Must also be triggered byor on a schedule. 
@@ -135,13 +137,6 @@ def s3_client__populated_bucket(s3_client, hardcoded_variables):
     
     yield s3_client
 
-@pytest.fixture()
-def return_s3_key__injection_bucket(table_name, original_invocation_time_string):
-    """ this will return what should be the key for a table of a given name in the injestion bucket"""
-    #timestamp = datetime.now()
-    #year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
-    return f'data/{table_name}/{original_invocation_time_string}/{table_name}.json'
-    #return f'data/{table_name}/{year}-{month}-{day}_{hour}-{minute}/{table_name}.json'
 
 @pytest.fixture()    
 def return_list_of_cities_in_address_df():
@@ -165,7 +160,7 @@ def sales_order_table_columns():
 class Test_read_s3_table_json:
 
     
-    def test_1_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
+    def test_1a_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
         """
         this particially addresses:
             1. Must transform data landing in the "ingestion" S3 bucket
@@ -185,20 +180,40 @@ class Test_read_s3_table_json:
         now = datetime.now()
         original_invocation_time_string = now.strftime("%m/%d/%Y, %H:%M:%S")
         expected_cities = return_list_of_cities_in_address_df
+        inj_file_key = return_s3_key__injection_bucket(target_table_name, original_invocation_time_string)
+        with open("data/json_lines_s3_format/address.jsonl", "rb") as file:
+            s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=inj_file_key, Body=file.read())
         
         # act
-        actual_df = read_s3_table_json(s3_client, return_s3_key__injection_bucket(target_table_name, original_invocation_time_string), hardcoded_variables["ingestion_bucket_name"], hardcoded_variables["processing_bucket_name"])
+        actual_df = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         
         
         # assert - the cities are extracting correctly
         assert list(actual_df["city"].values) == expected_cities
         
         # assert other things
-        assert isinstance(actual_df, pd.Dataframe)
+        assert isinstance(actual_df, pd.DataFrame)
+
+
+
+
+
+
+
+class Test_create_designs_table:
+    """
+    This is a test to see if we can create (and test) the creation of the dim_designs table with the "Sales" schema
     
+    One could argue that this table is not very hard to transform
+    
+    However it is an initial experiment into transforming the data(and making sure we can test it with mock_AWS)
+    
+    Post test there will be more complex/comprehensive test sfor the larger requested star schemas (reusing much of this code)
+    
+    """
     
     @pytest.mark.skip()
-    def test_2_target_sales_table_is_created(s3_client, sales_order_table_columns, hardcoded_variables):
+    def test_2a_target_design_table_is_created(s3_client, sales_order_table_columns, hardcoded_variables):
         """
         this particially addresses:
             1. Must place the results in the "processed" S3 bucket. 
@@ -207,29 +222,41 @@ class Test_read_s3_table_json:
         This test verifies that the parquet for the sales table is created, this may have to be refactored lol
 
         Expected behavior:
-        - create_sales_table(s3_client, datetime_string)
-            should:
-            be able to see and read a parquet table with the rows and columns populated ready for later use
-        """
+        input: df
         
+        
+        - read_s3_table_json()
+        
+        
+        XXXXXXXXXXXXXXXXXX NEXT ACTION XXXXXXXXXXXXXXXXXX:
+         - make a ficture with s3_popualuted_design_table
+        
+            
+        """
+        global sales_schema
         # assemble
-        datetime_string = return_datetime_string()
-        final_s3_key = return_s3_key__injection_bucket("sales_table", datetime_string)
+        #datetime_string = return_datetime_string()
+        #s3_key__sales_injection = return_s3_key__injection_bucket("sales_table", datetime_string)
+        #s3_key__sales_processed = return_s3_key__processed_bucket("sales_table", "sales_schema", datetime_string)
+        #
+        #df_sales_totesys = read_s3_table_json(s3_client, s3_key__sales_totesys, hardcoded_variables["ingestion_bucket_name"])
+        #
         
         # act
-        response = create_sales_table(s3_client, datetime_string)
+        df_sales = transform_df_sales_table()
+        response = populate_parquet_file(s3_client, datetime_string, df_sales_totesys, hardcoded_variables["processing_bucket_name"])
         
-        # assert - sales table exists
-        respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        # assert - response good
+        ### assert response = "goooooooood"
+        
+        # assert - design parquet file exists
+        respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["ingestion_bucket_name"])
         actual_tables_keys = [i["Key"] for i in respose_actual_tables_keys["Contents"]]
-        assert actual_tables_keys == [final_s3_key]
+        assert actual_tables_keys == [s3_key__sales_processed]
             
-        # assert TODO - sales table has the right columns
-        actual_df_sales = simple_read_parquet_file_into_dataframe(hardcoded_variables["processing_bucket_name"], final_s3_key, s3_client)        
-        actual_columns = actual_df_sales.columns.values()
-        assert actual_columns == sales_order_table_columns
+        # assert TODO - parquet has right columns
         
-        # assert TODO - sales table has at least one matching columns values (all rows match) to our expected snapshot
+        # assert TODO - parquet table has at least one matching columns values (all rows match) to our expected snapshot
         print("")
         
         # assert TODO - that the file is parquet
@@ -237,6 +264,4 @@ class Test_read_s3_table_json:
         
     
 
-        
-        
         

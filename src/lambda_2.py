@@ -1,30 +1,35 @@
 #import dask.dataframe as dd
 import io
 import pandas as pd
+import json
 
 
 
-def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name, processing_bucket_name):
+def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     """
     targets give json table in the injestion table and returns a df
     
     return s3_df
     """
     response = s3_client.get_object(Bucket=ingestion_bucket_name, Key=s3_key)
-    df = pd.read_table(io.BytesIO(response['Body'].read()))
-    print(df)
+    jsonl_data = response['Body'].read().decode('utf-8')
+    df = pd.DataFrame([json.loads(line) for line in jsonl_data.strip().split("\n")])
+        
     return df
     
 
-def create_sales_table(s3_client, datetime_string):
+def transform_df_sales_table(df_sales_totesys, bucket_name):
     """initial draft of transformation processes
     
     this will be refactor but is a bit of a PoC (proof of concept)
     
-    this method only returns a responce, it reads and populates directly the passed buckets
+    this method returns the df
     
-    return response
+    return df
     """
+    
     
     pass 
 
+def populate_parquet_file(s3_client, datetime_string, df_file, bucket_name):
+    pass
