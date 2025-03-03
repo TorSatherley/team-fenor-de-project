@@ -20,6 +20,7 @@ resource "aws_lambda_function" "lambda_extract_handler" {
   environment {
     variables = {
       SECRET_NAME = "totesys-db-credentials"
+      BUCKET_NAME = "totesys-ingestion-zone-fenor"
     }
   } 
 }
