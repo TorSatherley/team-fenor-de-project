@@ -7,7 +7,7 @@ from pprint import pprint
 from datetime import datetime
 from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
-from src.util import json_to_pg8000_output
+from src.util import json_to_pg8000_output, return_s3_key__injection_bucket
 from unittest import mock
 from src.lambda_2 import read_s3_table_json, create_sales_table
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
@@ -57,6 +57,7 @@ class DummyContext:
     pass
 
 MOCK_ENVIROMENT = True
+
 
 
 #%% fixtures
@@ -122,7 +123,7 @@ def snapshot_data_dict(hardcoded_variables):
     # TO DO: this will take all the snapshot data from the jsons and place them into dfs in a dict for later testing
     return snapshot_data_dict
 
-
+@pytest.fixture()
 def s3_client__populated_bucket(s3_client, hardcoded_variables):
     # placeholder puesdocode
     
@@ -134,28 +135,24 @@ def s3_client__populated_bucket(s3_client, hardcoded_variables):
     
     yield s3_client
 
-
+@pytest.fixture()
 def return_s3_key__injection_bucket(table_name, original_invocation_time_string):
     """ this will return what should be the key for a table of a given name in the injestion bucket"""
     #timestamp = datetime.now()
     #year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
     return f'data/{table_name}/{original_invocation_time_string}/{table_name}.json'
     #return f'data/{table_name}/{year}-{month}-{day}_{hour}-{minute}/{table_name}.json'
-    
+
+@pytest.fixture()    
 def return_list_of_cities_in_address_df():
     list_of_cities = ["New Patienceburgh", "Aliso Viejo", "Lake Charles", "Olsonside", "Fort Shadburgh", "Kendraburgh", "North Deshaun", "Suffolk", "New Tyra", "Beaulahcester", "Corpus Christi", "Pricetown", "Shanahanview", "Maggiofurt", "East Bobbie", "South Wyatt", "Hackensack", "Lake Arne", "West Briellecester", "Pueblo", "Fresno", "Sayreville","Derekport", "New Torrance", "East Arvel", "Napa", "Oakland Park", "Utica", "Bartellview", "Lake Myrlfurt"]
     return list_of_cities
     
-
+@pytest.fixture()
 def sales_order_table_columns():
     list_sales_order_columns = ["created_at", "last_updated", "design_id", "staff_id", "counterparty_id", "units_sold", "unit_price", "currency_id", "agreed_delivery_date", "agreed_payment_date", "agreed_delivery_location_id"]
     return list_sales_order_columns
 
-def return_s3_key__injection_bucket(table_name): # TODO: This needs refactoring
-    timestamp = datetime.now()
-    year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
-    return f'data/{table_name}/{year}-{month}-{day}_{hour}-{minute}/{table_name}.json'
-    
 
 
 #%% Tests
@@ -167,7 +164,7 @@ def return_s3_key__injection_bucket(table_name): # TODO: This needs refactoring
 #@pytest.mark.timeout(10)
 class Test_read_s3_table_json:
 
-    @pytest.mark.skip()
+    
     def test_1_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
         """
         this particially addresses:
@@ -183,12 +180,11 @@ class Test_read_s3_table_json:
             be able to see a pandas table with the rows and columns populated ready for use
         """
         # assemble
-        list_table_names = hardcoded_variables["dict_table_snapshot_filepaths"].keys()
+        list_table_names = list(hardcoded_variables["dict_table_snapshot_filepaths"].keys())
         target_table_name = list_table_names[0]
         now = datetime.now()
         original_invocation_time_string = now.strftime("%m/%d/%Y, %H:%M:%S")
         expected_cities = return_list_of_cities_in_address_df
-        
         
         # act
         actual_df = read_s3_table_json(s3_client, return_s3_key__injection_bucket(target_table_name, original_invocation_time_string), hardcoded_variables["ingestion_bucket_name"], hardcoded_variables["processing_bucket_name"])
@@ -199,7 +195,9 @@ class Test_read_s3_table_json:
         
         # assert other things
         assert isinstance(actual_df, pd.Dataframe)
-        
+    
+    
+    @pytest.mark.skip()
     def test_2_target_sales_table_is_created(s3_client, sales_order_table_columns, hardcoded_variables):
         """
         this particially addresses:
@@ -213,7 +211,6 @@ class Test_read_s3_table_json:
             should:
             be able to see and read a parquet table with the rows and columns populated ready for later use
         """
-        
         
         # assemble
         datetime_string = return_datetime_string()
