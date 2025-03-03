@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - my-branch
+      - lambda-1-coverage-and-error_handling
   pull_request:
     branches:
       - main
