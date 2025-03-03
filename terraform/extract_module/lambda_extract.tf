@@ -20,15 +20,15 @@ resource "aws_lambda_function" "lambda_extract_handler" {
   environment {
     variables = {
       SECRET_NAME = "totesys-db-credentials"
-      BUCKET_NAME = "totesys-ingestion-zone-fenor"
     }
-  }
+  } 
 }
+
 
 data "archive_file" "lambda_extract_package" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
-  output_path = "${path.module}/src/lambda_extract.zip"
+  source_dir  = "${path.module}/../../src"
+  output_path = "${path.module}/lambda_extract.zip"
 }
 
 # Layers 
@@ -47,7 +47,7 @@ resource "null_resource" "pip_install" {
 data "archive_file" "lambda_extract_layer" {
   type        = "zip"
   source_dir  = "${path.module}/${var.lambda_extract_handler}_layer"
-  output_path = "${path.module}/src/layer.zip"
+  output_path = "${path.module}/layer_extract.zip"
   depends_on  = [null_resource.pip_install]
 }
 

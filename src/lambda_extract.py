@@ -1,15 +1,11 @@
 import json
 import os
 from datetime import datetime
-
 import boto3
 from botocore.exceptions import ClientError
 import pandas as pd
 from pg8000.native import Connection
-from dotenv import load_dotenv
 
-
-load_dotenv()
 
 client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
 bucket_name = "totesys-ingestion-zone-fenor"
@@ -29,26 +25,17 @@ def get_secret(client):
     secret = get_secret_value_response["SecretString"]
     secrets = json.loads(secret)
 
-    return {
-        "secret": {
-            "username": secrets["username"],
-            "password": secrets["password"],
-            "dbname": secrets["dbname"],
-            "port": secrets["port"],
-            "engine": secrets["engine"],
-            "host": secrets["host"],
-        }
-    }
+    return secrets
 
 
 def create_conn():
     """Establishes a connection to the database using secrets."""
     db_credentials = get_secret(client)
     db_connection = Connection(
-        database=db_credentials["secret"]["dbname"],
-        user=db_credentials["secret"]["username"],
-        password=db_credentials["secret"]["password"],
-        host=db_credentials["secret"]["host"],
+        database=db_credentials["dbname"],
+        user=db_credentials["username"],
+        password=db_credentials["password"],
+        host=db_credentials["host"],
     )
     return db_connection
 
@@ -68,18 +55,18 @@ def get_rows_and_columns_from_table(conn, table):
     return rows, columns
 
 
-def write_table_to_s3(table, rows, columns):
+def write_table_to_s3(s3_client, table, rows, columns):
     """Converts table data to JSON and uploads it to S3."""
     df = pd.DataFrame(data=rows, columns=columns)
     json_data = df.to_json(orient="records", lines=False, date_format="iso")
     static_time = datetime.now().strftime("%H%M")
     date_today = datetime.now().strftime("%Y%m%d")
-    key = f"data/{date_today}_{static_time}/{table}.json"
+    key = f"data/{date_today}_{static_time}/{table}.jsonl"
     s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
     return key
 
 
-def log_file(keys):
+def log_file(s3_client, keys):
     """Logs file upload details and writes to S3."""
     log_contents = []
     for key in keys:
@@ -106,7 +93,6 @@ def lambda_handler(event, context):
 
     # Create connection
     conn = create_conn()
-
     try:
         keys = []
 
@@ -115,17 +101,15 @@ def lambda_handler(event, context):
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE '!_%' ESCAPE '!'"
         )
         table_names = [table[0] for table in table_query]
-
         for table in table_names:
             # Query the table
             rows, columns = get_rows_and_columns_from_table(conn, table)
-
             # Convert to pandas df, format JSON file, and upload file to S3 bucket
-            key = write_table_to_s3(table, rows, columns)
+            key = write_table_to_s3(s3_client, table, rows, columns)
             keys.append(key)
 
         # Write log file to S3 bucket
-        log_file(keys)
+        log_file(s3_client, keys)
 
         # Close connection
         close_db(conn)
@@ -133,5 +117,5 @@ def lambda_handler(event, context):
             f"Log: Batch extraction completed - {datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}"
         )
         return {"message": "Batch extraction job completed"}
-    except ClientError as e:
+    except Exception as e:
         return {"message": "Batch extraction job failed", "error": str(e)}
