@@ -406,7 +406,7 @@ def test_lambda_handler(
 def test_lambda_handler_for_client_error():
     event = {}
     context = None
-    with pytest.raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.NoCredentialsError):
         lambda_handler(event, context)
 
 
