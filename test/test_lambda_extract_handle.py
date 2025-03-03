@@ -1,7 +1,9 @@
 import os
 import json
+import botocore.exceptions
 import pytest
 import boto3
+import botocore
 from datetime import datetime, date
 from unittest.mock import MagicMock, Mock, patch
 from src.lambda_extract import (
@@ -13,9 +15,6 @@ from src.lambda_extract import (
     log_file,
     lambda_handler,
 )
-
-
-get_secret
 
 
 def test_get_secret():
@@ -152,16 +151,11 @@ def test_lambda_handler(
     mock_s3_client = boto3.client("s3")
 
     # ACT:
-    mock_conn = MagicMock()
-    mock_conn.run.return_value = [("address",), ("staff",)]
-
-    mock_create_conn.return_value = mock_conn
 
     with patch("src.lambda_extract.s3_client", mock_s3_client):
         with patch("src.lambda_extract.datetime") as mock_datetime:
             test_date = date(2025, 7, 23)
             mock_datetime.today.return_value = test_date
-            # .today.strftime
             mock_datetime.side_effect = lambda *args, **kw: datetime.strftime(
                 *args, **kw
             )
@@ -211,3 +205,41 @@ def test_lambda_handler(
         captured.out
         == f"Log: Batch extraction completed - {test_date.strftime('%Y-%m-%d_%H-%M-%S')}\n"
     )
+
+
+def test_lambda_handler_for_client_error():
+    event = {}
+    context = None
+    with pytest.raises(botocore.exceptions.ClientError):
+        lambda_handler(event, context)
+
+
+@patch("src.lambda_extract.get_rows_and_columns_from_table")
+@patch("src.lambda_extract.create_conn")
+def test_using_return_for_put_s3_error(mock_create_conn, mock_get_rows_columns):
+    mock_conn = MagicMock()
+    mock_conn.run.return_value = [("address",), ("staff",)]
+
+    mock_create_conn.return_value = mock_conn
+
+    # mock the output of get_rows_and_columns_from_tables in the handler for loop. This will be called twice in this mock,
+    # once for 'addess' and 'staff'. Side_effect enables mocking of multiple calls to a function.
+    mock_get_rows_columns.side_effect = [
+        (  # address table
+            [[1, "123 Northcode Road", "Leeds"], [2, "66 Fenor Drive", "Manchester"]],
+            ["address_ID", "address", "city"],
+        ),
+        (  # staff table
+            [
+                [1, "Connor", "Creed", "creedmoney@gmail.com"],
+                [2, "Brendan", "Corbett", "yeaaboii@hotmail.co.uk"],
+            ],
+            ["staff_ID", "first_name", "last_name", "email"],
+        ),
+    ]
+
+    event = {}
+    context = None
+    result = lambda_handler(event, context)
+    print(result)
+    assert "An error occurred (AccessDenied) when calling the PutObject operation: Access Denied" in result['error']
