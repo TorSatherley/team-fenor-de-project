@@ -4,10 +4,16 @@ resource "aws_lambda_function" "lambda_transform_handler" {
   role             = aws_iam_role.lambda_transform_exec.arn
   runtime          = "python3.13"
   handler          = "lambda_transform.lambda_handler"
-  timeout         = 200
+  timeout         = 600
   layers            = [aws_lambda_layer_version.lambda_transform_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1"]
   filename         = data.archive_file.lambda_transform_package.output_path
   source_code_hash = data.archive_file.lambda_transform_package.output_base64sha256
+  environment {
+    variables = {
+      INGESTION_BUCKET = "totesys-ingestion-zone-fenor"
+      PROCESSED_BUCKET = "totesys-processed-zone-fenor"
+    }
+  }
 }
 
 data "archive_file" "lambda_transform_package" {

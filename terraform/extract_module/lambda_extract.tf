@@ -21,8 +21,7 @@ resource "aws_lambda_function" "lambda_extract_handler" {
     variables = {
       SECRET_NAME = "totesys-db-credentials"
     }
-  }
-    
+  } 
 }
 
 
