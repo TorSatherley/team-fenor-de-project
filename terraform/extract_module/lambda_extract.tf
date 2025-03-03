@@ -17,7 +17,14 @@ resource "aws_lambda_function" "lambda_extract_handler" {
     {
       Name = "Lambda: Extract from RDS"
     })
+  environment {
+    variables = {
+      SECRET_NAME = "totesys-db-credentials"
+    }
+  }
+    
 }
+
 
 data "archive_file" "lambda_extract_package" {
   type        = "zip"
