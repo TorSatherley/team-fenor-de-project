@@ -55,29 +55,46 @@ resource "aws_iam_policy" "lambda_transform_cloudwatch_logs" {
   })
 }
 
+# resource "aws_iam_policy" "lambda_transform_s3_full_access" {
+#   name        = "LambdaTransformS3FullAccessPolicy"
+#   description = "Full access to S3"
+
+#   policy = jsonencode({
+#     Version   = "2012-10-17"
+#     Id        = "default"
+#     Statement = [
+#       {
+#         Effect   = "Allow"
+#         Action   = "lambda:InvokeFunction"
+#         Resource = "arn:aws:lambda:${var.aws_region}:${var.aws_account_id}:function:${var.lambda_transform_handler}"
+#         Condition = {
+#           StringEquals = {
+#             "AWS:SourceAccount" = "${var.aws_account_id}"
+#           }
+#           ArnLike = {
+#             "AWS:SourceArn" = "arn:aws:s3:::${var.s3_ingestion_bucket}"
+#           }
+#         }
+#       }
+#     ]
+#   })
+# }
+
 resource "aws_iam_policy" "lambda_transform_s3_full_access" {
   name        = "LambdaTransformS3FullAccessPolicy"
-  description = "Full access to S3"
+  description = "Allows full access to S3"
 
   policy = jsonencode({
     Version   = "2012-10-17"
-    Id        = "default"
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "lambda:InvokeFunction"
-        Resource = "arn:aws:lambda:${var.aws_region}:${var.aws_account_id}:function:${var.lambda_transform_handler}"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceAccount" = "${var.aws_account_id}"
-          }
-          ArnLike = {
-            "AWS:SourceArn" = "arn:aws:s3:::${var.s3_ingestion_bucket}"
-          }
-        }
+        Action   = [
+          "s3:*",
+          "s3-object-lambda:*"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
-
-
