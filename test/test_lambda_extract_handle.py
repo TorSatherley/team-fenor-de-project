@@ -37,18 +37,17 @@ def mock_totesys_connection(mock_conn):
     return mock_conn
 
 
-
-
-
 @pytest.fixture(scope="function")
 def s3(aws_credentials):
     with mock_aws():
         yield boto3.client("s3", region_name="eu-west-2")
 
+
 @pytest.fixture(scope="function")
 def mock_empty_s3(aws_credentials):
     with mock_aws():
         yield boto3.client("s3", region_name="eu-west-2")
+
 
 @pytest.fixture
 def mock_secret(mock_empty_s3):
@@ -58,15 +57,14 @@ def mock_secret(mock_empty_s3):
         "password": "test_password",
         "host": "localhost",
         "port": "test_5432",
-        "engine": "test_engine"
-        }
+        "engine": "test_engine",
+    }
 
 
 @pytest.fixture
 def mock_secrets_client():
     with mock_aws():
         yield boto3.client("secretsmanager", region_name="eu-west-2")
-
 
 
 BUCKET_NAME = "test_bucket"
@@ -84,6 +82,7 @@ FILES = [
     "transaction",
 ]
 
+
 @pytest.fixture
 def bucket(s3):
     s3.create_bucket(
@@ -92,13 +91,14 @@ def bucket(s3):
     )
 
     for file in FILES:
-            file_path = f"test/test_data/{file}.json"
-            s3_key = f"data/2025_02_27__1030/{file}.json"
+        file_path = f"test/test_data/{file}.json"
+        s3_key = f"data/2025_02_27__1030/{file}.json"
 
-            # Read JSON file and upload to S3
-            with open(file_path, "r") as json_file:
-                text_to_write = json_file.read()
-                s3.put_object(Body=text_to_write, Bucket=BUCKET_NAME, Key=s3_key)
+        # Read JSON file and upload to S3
+        with open(file_path, "r") as json_file:
+            text_to_write = json_file.read()
+            s3.put_object(Body=text_to_write, Bucket=BUCKET_NAME, Key=s3_key)
+
 
 class TestGetSecret:
     @pytest.mark.it("Secret is retrieved")
@@ -120,86 +120,118 @@ class TestGetSecret:
         with pytest.raises(botocore.exceptions.ClientError) as excinfo:
             result = get_secret(mock_secrets_client)
             mock_secrets_client.get_secret_value(SecretId="not-here")
-            assert "Secrets Manager can't find the specified secret" in str(excinfo['Error']['Message'])
+            assert "Secrets Manager can't find the specified secret" in str(
+                excinfo["Error"]["Message"]
+            )
             assert result == "Error: Secrets Manager can't find the specified secret."
 
-
-    @pytest.mark.it('Environment variable is wrong or does not exist for secret')
+    @pytest.mark.it("Environment variable is wrong or does not exist for secret")
     @patch("dotenv.load_dotenv")
     @patch.dict(os.environ, {"SECRET_NAME": "wrong_env"})
     def test_wrong_or_no_dotenv_variable(self, mock_dotenv, mock_secrets_client):
 
         load_dotenv()
 
-        secret_id = os.getenv('SECRET_NAME')
+        secret_id = os.getenv("SECRET_NAME")
         assert secret_id == "wrong_env"
 
         with pytest.raises(botocore.exceptions.ClientError) as excinfo:
             result = get_secret(mock_secrets_client)
-            assert "Secrets Manager can't find the specified secret" in str(excinfo['Error']['Message'])
+            assert "Secrets Manager can't find the specified secret" in str(
+                excinfo["Error"]["Message"]
+            )
             assert result == "Error: Secrets Manager can't find the specified secret."
 
 
 class TestConnection:
     @pytest.mark.it("Connection to database is established and retrieves data")
     @patch("src.lambda_extract.get_secret")
-    def test_connection_to_database_is_established(self, mock_get_secret, mock_secret, mock_totesys_connection):
+    def test_connection_to_database_is_established(
+        self, mock_get_secret, mock_secret, mock_totesys_connection
+    ):
         mock_get_secret.return_value = mock_secret
-        mock_totesys_connection.run = Mock(side_effect=[{"sales_order_id": 2, "unit_price": 3.94}])
-        result = mock_totesys_connection.run("SELECT sales_order_id, unit_price FROM sales")
+        mock_totesys_connection.run = Mock(
+            side_effect=[{"sales_order_id": 2, "unit_price": 3.94}]
+        )
+        result = mock_totesys_connection.run(
+            "SELECT sales_order_id, unit_price FROM sales"
+        )
         assert result == {"sales_order_id": 2, "unit_price": 3.94}
 
-    # Vincent's contribution for "create_conn"
-    @pytest.mark.it("Connection to database is established and retrieves data - Vincent")
+    @pytest.mark.it(
+        "Connection to database is established and retrieves data - Vincent"
+    )
     @patch("src.lambda_extract.get_secret")
     @patch("src.lambda_extract.Connection")
-    def test_create_conn(self, mock_Connection, mock_get_secret, mock_secret, mock_totesys_connection):
+    def test_create_conn(
+        self, mock_Connection, mock_get_secret, mock_secret, mock_totesys_connection
+    ):
         mock_get_secret.return_value = mock_secret
         mock_Connection.return_value = mock_totesys_connection
 
         conn = create_conn()
-        
-        mock_get_secret.assert_called_once() # "get_secret" is called
-        mock_Connection.assert_called_once() # "Connection" is called
-        assert conn == mock_totesys_connection # "Connection" output is returned by create_conn()
+
+        mock_get_secret.assert_called_once()  # "get_secret" is called
+        mock_Connection.assert_called_once()  # "Connection" is called
+        assert (
+            conn == mock_totesys_connection
+        )  # "Connection" output is returned by create_conn()
 
     @pytest.mark.it("Connection to database is successfully closed")
-    def test_connection_to_database_is_successfully_closed_with_close_db(self, mock_totesys_connection):
-        close_db(mock_totesys_connection) 
-        mock_totesys_connection.close.assert_called_once() 
-
+    def test_connection_to_database_is_successfully_closed_with_close_db(
+        self, mock_totesys_connection
+    ):
+        close_db(mock_totesys_connection)
+        mock_totesys_connection.close.assert_called_once()
 
 
 class TestRowsAndColumns:
     @pytest.mark.it("Rows are retreieved from database")
     @patch("src.lambda_extract.get_secret")
-    def test_rows_are_retrieved_from_connection_to_database(self, mock_get_secret, mock_secret, mock_totesys_connection):
+    def test_rows_are_retrieved_from_connection_to_database(
+        self, mock_get_secret, mock_secret, mock_totesys_connection
+    ):
         mock_get_secret.return_value = mock_secret
-        mock_totesys_connection.run = Mock(side_effect=[{"sales_order_id": 2, "unit_price": 3.94}, {"sales_order_id": 3, "unit_price": 4.20}])
+        mock_totesys_connection.run = Mock(
+            side_effect=[
+                {"sales_order_id": 2, "unit_price": 3.94},
+                {"sales_order_id": 3, "unit_price": 4.20},
+            ]
+        )
         result = mock_totesys_connection.run("SELECT sales_order_id FROM sales")
 
-        assert result == {"sales_order_id": 2, "unit_price": 3.94}, {"sales_order_id": 3, "unit_price": 4.20}
+        assert result == {"sales_order_id": 2, "unit_price": 3.94}, {
+            "sales_order_id": 3,
+            "unit_price": 4.20,
+        }
 
     @pytest.mark.it("Column names are retreieved from database")
     @patch("src.lambda_extract.get_secret")
-    def test_columns_are_retrieved_from_connection_to_database(self, mock_get_secret, mock_secret, mock_totesys_connection):
+    def test_columns_are_retrieved_from_connection_to_database(
+        self, mock_get_secret, mock_secret, mock_totesys_connection
+    ):
         mock_get_secret.return_value = mock_secret
-        mock_totesys_connection.run = Mock(side_effect=[["sales_order_id", "unit_price"]])
-        result = mock_totesys_connection.run("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = sales")
-        assert result == ['sales_order_id', 'unit_price']
-    
-    # Vincent's contirbution for get_rows_and_columns_from_table
+        mock_totesys_connection.run = Mock(
+            side_effect=[["sales_order_id", "unit_price"]]
+        )
+        result = mock_totesys_connection.run(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = sales"
+        )
+        assert result == ["sales_order_id", "unit_price"]
+
     def test_get_rows_and_columns_from_table(self, mock_totesys_connection):
         # Arrange
         mock_totesys_connection.run.side_effect = [
             [["col_1"], ["col_2"]],
-            [["val1", "val2"], ["val3", "val4"]]
+            [["val1", "val2"], ["val3", "val4"]],
         ]
         mock_table = "test_table"
 
         # Act
-        rows, columns = get_rows_and_columns_from_table(mock_totesys_connection, mock_table)
-        
+        rows, columns = get_rows_and_columns_from_table(
+            mock_totesys_connection, mock_table
+        )
+
         # Assert
         assert mock_totesys_connection.run.call_count == 2
         assert rows == [["val1", "val2"], ["val3", "val4"]]
@@ -218,21 +250,28 @@ class TestWriteTableToS3:
         mock_df = Mock()
         mock_pd_DataFrame.return_value = mock_df
         mock_df.to_json.return_value = Mock()
-        mock_datetime.now.return_value.strftime = Mock(side_effect=["14-46", "2001-09-11"])
+        mock_datetime.now.return_value.strftime = Mock(
+            side_effect=["14-46", "2001-09-11"]
+        )
         mock_s3_client.put_object.return_value = Mock()
 
         key = write_table_to_s3(mock_s3_client, mock_table, mock_rows, mock_columns)
 
         mock_pd_DataFrame.assert_called_once_with(data=mock_rows, columns=mock_columns)
-        mock_df.to_json.assert_called_once_with(orient="records", lines=False, date_format="iso")
+        mock_df.to_json.assert_called_once_with(
+            orient="records", lines=False, date_format="iso"
+        )
         mock_datetime.now.return_value.strftime.assert_any_call("%H%M")
         mock_datetime.now.return_value.strftime.assert_any_call("%Y%m%d")
-        mock_s3_client.put_object.assert_called_with(Bucket="totesys-ingestion-zone-fenor", Key=key, Body=mock_df.to_json.return_value)
+        mock_s3_client.put_object.assert_called_with(
+            Bucket="totesys-ingestion-zone-fenor",
+            Key=key,
+            Body=mock_df.to_json.return_value,
+        )
         assert key == "data/2001-09-11_14-46/test_table.json"
 
 
 class TestLogFile:
-    # Vincent's contirbution for test_log_file
     @patch("src.lambda_extract.datetime")
     def test_log_file(self, mock_datetime):
         mock_s3_client = Mock()
@@ -247,7 +286,10 @@ class TestLogFile:
         mock_datetime.now.assert_any_call()
         mock_datetime.today.return_value.strftime.assert_any_call("%Y-%m-%d_%H-%M-%S")
         mock_s3_client.put_object.assert_called_once()
-        assert message == {"message": "Files Processed: Batch Lambda Transform complete"}
+        assert message == {
+            "message": "Files Processed: Batch Lambda Transform complete"
+        }
+
 
 # patch the namespaces of all of the util functions that lamba handler uses
 @patch("src.lambda_extract.create_conn")
@@ -394,4 +436,7 @@ def test_using_return_for_put_s3_error(mock_create_conn, mock_get_rows_columns):
     context = None
     result = lambda_handler(event, context)
     print(result)
-    assert "An error occurred (AccessDenied) when calling the PutObject operation: Access Denied" in result['error']
+    assert (
+        "An error occurred (AccessDenied) when calling the PutObject operation: Access Denied"
+        in result["error"]
+    )

@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - CICD-updates
+      - tor-test
   pull_request:
     branches:
       - main
