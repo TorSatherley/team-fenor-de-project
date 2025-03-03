@@ -12,8 +12,8 @@ resource "aws_lambda_function" "lambda_load_handler" {
 
 data "archive_file" "lambda_load_package" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
-  output_path = "${path.module}/src/lambda_load.zip"
+  source_dir  = "${path.module}/../../src"
+  output_path = "${path.module}/lambda_load.zip"
 }
 
 
@@ -33,8 +33,8 @@ resource "null_resource" "pip_install" {
 # Lambda Layer Archive
 data "archive_file" "lambda_load_layer" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
-  output_path = "${path.module}/src/layer.zip"
+  source_dir  = "${path.module}/${var.lambda_load_handler}_layer"
+  output_path = "${path.module}/layer_load.zip"
   depends_on  = [null_resource.pip_install]
 }
 

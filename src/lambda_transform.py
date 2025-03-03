@@ -1,10 +1,11 @@
 import os
 import boto3
+import datetime
 import pandas as pd
 
 INGESTION_BUCKET = os.environ.get("INGESTION_BUCKET")
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET")
-s3_client = boto3.client("s3")
+s3 = boto3.client("s3")
 
 def lambda_handler(event, context):
     
@@ -21,3 +22,4 @@ def lambda_handler(event, context):
     return {
         "message": f"Processed Files in s3://{PROCESSED_BUCKET}"
     }
+

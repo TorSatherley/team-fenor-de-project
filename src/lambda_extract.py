@@ -77,7 +77,7 @@ def write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_tim
         key = f"data/{date_and_time}/{table}.jsonl"
         s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
         return key
-    except (ValueError, ClientError, Exception) as e:
+    except (NoCredentialsError, ClientError, ValueError, Exception) as e:
         print(f"Error writing {table} to S3: {e}")
         return None
 
@@ -99,7 +99,7 @@ def log_file(s3_client, bucket_name, keys):
             Key=f"logs/{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.log",
         )
         return {"message": "Files Processed: Batch Lambda Transform complete"}
-    except ClientError as e:
+    except (ClientError, NoCredentialsError) as e:
         print(f"Error logging files to S3: {e}")
 
 
@@ -146,6 +146,6 @@ def lambda_handler(event, context):
             f"Log: Batch extraction completed - {datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}"
         )
         return {"message": "Batch extraction job completed"}
-    except (ClientError, Exception) as e:
+    except (ClientError, NoCredentialsError, Exception) as e:
         print(f"Batch extraction job failed: {e}")
         return {"message": "Batch extraction job failed", "error": str(e)}
