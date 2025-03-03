@@ -70,6 +70,7 @@ run-black:
 
 ## Run the unit tests
 unit-test:
+	@echo ">>> About to create environment: $(SECRET_NAME)..."
 	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} pytest -vvvrP)
 
 

@@ -406,7 +406,7 @@ def test_lambda_handler(
 # def test_lambda_handler_for_client_error():
 #     event = {}
 #     context = None
-#     with pytest.raises(botocore.exceptions.BotoCoreError):
+#     with pytest.raises(botocore.exceptions.ClientError):
 #         lambda_handler(event, context)
 
 
@@ -434,11 +434,8 @@ def test_using_return_for_put_s3_error(mock_create_conn, mock_get_rows_columns):
 
     event = {}
     context = None
-    print('got to line 437')
+    print("got to line 437")
     result = lambda_handler(event, context)
-    print('got to line 439')
+    print("got to line 439")
     print(result)
-    assert (
-        "Batch extraction job failed"
-        in result["message"]
-    )
+    assert "Batch extraction job failed" in result["message"]

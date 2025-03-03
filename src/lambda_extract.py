@@ -120,5 +120,5 @@ def lambda_handler(event, context):
             f"Log: Batch extraction completed - {datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}"
         )
         return {"message": "Batch extraction job completed"}
-    except ClientError as e:
+    except Exception as e:
         return {"message": "Batch extraction job failed", "error": str(e)}
