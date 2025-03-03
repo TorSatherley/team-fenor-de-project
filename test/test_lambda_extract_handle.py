@@ -268,7 +268,7 @@ class TestWriteTableToS3:
             Key=key,
             Body=mock_df.to_json.return_value,
         )
-        assert key == "data/2001-09-11_14-46/test_table.json"
+        assert key == "data/2001-09-11_14-46/test_table.jsonl"
 
 
 class TestLogFile:
@@ -401,13 +401,6 @@ def test_lambda_handler(
         captured.out
         == f"Log: Batch extraction completed - {test_date.strftime('%Y-%m-%d_%H-%M-%S')}\n"
     )
-
-
-# def test_lambda_handler_for_client_error():
-#     event = {}
-#     context = None
-#     with pytest.raises(botocore.exceptions.ClientError):
-#         lambda_handler(event, context)
 
 
 @patch("src.lambda_extract.get_rows_and_columns_from_table")

@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - tor-test
+      - my-branch
   pull_request:
     branches:
       - main

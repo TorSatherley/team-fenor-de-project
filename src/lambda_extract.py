@@ -5,10 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 import pandas as pd
 from pg8000.native import Connection
-from dotenv import load_dotenv
 
-
-load_dotenv()
 
 client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
 bucket_name = "totesys-ingestion-zone-fenor"
@@ -64,7 +61,7 @@ def write_table_to_s3(s3_client, table, rows, columns):
     json_data = df.to_json(orient="records", lines=False, date_format="iso")
     static_time = datetime.now().strftime("%H%M")
     date_today = datetime.now().strftime("%Y%m%d")
-    key = f"data/{date_today}_{static_time}/{table}.json"
+    key = f"data/{date_today}_{static_time}/{table}.jsonl"
     s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
     return key
 
