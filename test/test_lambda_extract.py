@@ -104,12 +104,14 @@ def bucket(s3):
 class TestGetSecret:
     @pytest.mark.it("Secret is retrieved")
     def test_get_secret_retrieves_secret(self, mock_secrets_client, mock_secret):
-        mock_secrets_client.create_secret(
-            Name="test-secret", SecretString=json.dumps(mock_secret)
-        )
+        mock_get_secret_value = MagicMock()
+        mock_secrets_client.get_secret_value = mock_get_secret_value
+
+        mock_get_secret_value.return_value = {
+            "SecretString": json.dumps(mock_secret)
+        }
         mock_secret_name = "test-secret"
         response = get_secret(mock_secrets_client, mock_secret_name)
-
         assert response == mock_secret
 
     @pytest.mark.it("Getting a secret returns a client error")
