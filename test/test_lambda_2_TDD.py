@@ -114,11 +114,6 @@ def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_st
     with open("data/json_lines_s3_format/sales_order.jsonl", "rb") as file:
         s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=key, Body=file.read())
     
-    with open("data/json_lines_s3_format/address.jsonl", "rb") as file:
-            s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=inj_file_key, Body=file.read())
-    
-    
-    
     yield s3_client, datetime_str
 
 @pytest.fixture()
@@ -165,6 +160,13 @@ def return_list_of_cities_in_address_df():
 def sales_order_table_columns():
     list_sales_order_columns = ["created_at", "last_updated", "design_id", "staff_id", "counterparty_id", "units_sold", "unit_price", "currency_id", "agreed_delivery_date", "agreed_payment_date", "agreed_delivery_location_id"]
     return list_sales_order_columns
+
+@pytest.fixture()
+def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
+    # Fabio and Connor printed out the first 10 rows of the sample sales table and manually extracted the unique dates mentioned
+    # this includes dates mentioned in datetimes
+    list_unique_dates = ["2022-11-03", "2022-11-04", "2022-11-05", "2022-11-06", "2022-11-07", "2022-11-08", "2022-11-09", "2022-11-10", "2022-11-11", "2022-11-13"]
+    return list_unique_dates
 
 
 
@@ -225,7 +227,7 @@ class Test_create_designs_table:
     Post test there will be more complex/comprehensive test sfor the larger requested star schemas (reusing much of this code)
     
     """
-    def test_2a_dim_dates_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables):
+    def test_2a_dim_dates_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables, return_unique_dates_mentioned_in_first_10_rows_of_sale_table):
         """
         this particially addresses:
             1. Must place the results in the "processed" S3 bucket. 
@@ -251,22 +253,24 @@ class Test_create_designs_table:
         df_totesys_sales_order = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         df_dim_dates_name = "dim_dates"
         hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        expected_dates = return_unique_dates_mentioned_in_first_10_rows_of_sale_table
         
         print(" ------- df_totesys_sales_order ------- ")
         print(df_totesys_sales_order[:hardcode_limit])
+        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
         
         # act
         df_dim_dates = _return_df_dim_dates(df_totesys_sales_order[:hardcode_limit])
         response     = populate_parquet_file(s3_client, datetime_string, df_dim_dates_name, df_dim_dates, hardcoded_variables["processing_bucket_name"])
         
-        print("  ")
-        print(" ------- df_dim_dates ------- ")
-        print(df_dim_dates.head(hardcode_limit))
-        
-        
         # assert - df_dim_dates type
         assert isinstance(df_dim_dates, pd.DataFrame)
         
+        # assert_unique_dates_exist
+        actual_dates_stored = set(f"{YYYY}-{MM}-{DD}" for YYYY, MM, DD in zip(df_dim_dates["year"].values, 
+                                                                              df_dim_dates["month"].values, 
+                                                                              df_dim_dates["day"].values))
+        assert set(expected_dates) == actual_dates_stored
         
         # # assert - response good
         # assert response["message"] == "success"
