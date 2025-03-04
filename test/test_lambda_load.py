@@ -19,6 +19,22 @@ class ConvertParquetsToDataframes:
     pass
 
 class TestUploadDfToWarehouse:
+    # test working function returns success message
+    # test that tables have been updated
+
+    # ARRANGE
+    # spin up a local version of a database (fixture)
+    # create a test dataframe list (fixture)
+    # mock conn = MagicMock() (fixture)
+    # create a mocked SQLchemy engine
+    # make connection to test database
+    
+    # ACT
+    # call upload_dfs_to_warehouse with mocked / patched connection and test dataframe list
+
+    # ASSERT
+    # assert table have been updated with the expected data from dfs
+    # assert success message returned
     pass
 
 

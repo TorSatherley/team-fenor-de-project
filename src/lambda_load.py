@@ -44,11 +44,11 @@ def convert_parquets_to_dataframes(s3_client, latest_folder):
 
 
 # Upload each Parquet file to respective table in db (warehouse)
-def upload_df_to_warehouse(conn, df_list):
+def upload_dfs_to_warehouse(conn, df_list):
     # for each dataframe in df_list:
     #   format the query with tablename
     #   upload that dataframe to the corresponding table on the db
-    # return response
+    # return success or failure response
     pass
 
 
@@ -57,8 +57,8 @@ def lambda_handler(event, contenxt):
         s3_file_path = event["s3_file_path"]
         dfs = convert_parquets_to_dataframes(s3_client, s3_file_path)
         conn = create_conn(sm_client, secret_name)
-        upload_df_to_warehouse(conn, dfs)
-        close_db()
+        upload_dfs_to_warehouse(conn, dfs)
+        close_db(conn)
         return {"message": "Success"}
     except: # Choose exceptions to handle
         return {"message": "Failure"}
