@@ -1,0 +1,1 @@
+from src.lambda_load import lambda_handler
