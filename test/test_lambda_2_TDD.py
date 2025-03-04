@@ -7,9 +7,9 @@ from pprint import pprint
 from datetime import datetime
 from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
-from src.util import json_to_pg8000_output, return_s3_key__injection_bucket, return_s3_key__processed_bucket
+from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, create_sales_table
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, populate_parquet_file
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 
@@ -51,6 +51,10 @@ Actions:
     - ensure that development uses environmental variable to assign bucket name
     - populate: placeholder_function_for_checking_data_placed_into_s3_folder
 """
+
+
+
+
 
 
 #%% Placeholder Variables and Functions - These are hard-coded currently and may need to be made more programmic
@@ -101,6 +105,18 @@ def s3_client(hardcoded_variables):
             Bucket=hardcoded_variables["processing_bucket_name"],
             CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         yield s3
+
+
+def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str(s3_client):
+    # just populates a single jsonl file into a mock bucket for unit testing
+    datetime_str = return_datetime_string()
+    key = return_s3_key("sales_order", datetime_str)
+    
+    # act
+    with open("data/json_lines_s3_format/sales_order.jsonl", "rb") as file:
+        s3_client.put_object(Bucket=hardcoded_variables[""], Key=key, Body=file)
+    
+    yield s3_client, datetime_str
 
 
 @pytest.fixture()
@@ -176,27 +192,23 @@ class Test_read_s3_table_json:
         """
         # assemble
         list_table_names = list(hardcoded_variables["dict_table_snapshot_filepaths"].keys())
-        target_table_name = list_table_names[0]
+        target_table_name = list_table_names[0] # this is likely the "address" table name
         now = datetime.now()
         original_invocation_time_string = now.strftime("%m/%d/%Y, %H:%M:%S")
         expected_cities = return_list_of_cities_in_address_df
-        inj_file_key = return_s3_key__injection_bucket(target_table_name, original_invocation_time_string)
+        inj_file_key = return_s3_key(target_table_name, original_invocation_time_string)
         with open("data/json_lines_s3_format/address.jsonl", "rb") as file:
             s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=inj_file_key, Body=file.read())
         
         # act
-        actual_df = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
+        actual_df_addresses_table = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         
         
         # assert - the cities are extracting correctly
-        assert list(actual_df["city"].values) == expected_cities
+        assert list(actual_df_addresses_table["city"].values) == expected_cities
         
         # assert other things
-        assert isinstance(actual_df, pd.DataFrame)
-
-
-
-
+        assert isinstance(actual_df_addresses_table, pd.DataFrame)
 
 
 
@@ -213,11 +225,11 @@ class Test_create_designs_table:
     """
     
     @pytest.mark.skip()
-    def test_2a_target_design_table_is_created(s3_client, sales_order_table_columns, hardcoded_variables):
+    def test_2a_dim_dates_table_is_created_in_correct_position(s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables):
         """
         this particially addresses:
             1. Must place the results in the "processed" S3 bucket. 
-                a. formats of tables? maybe start at one then get more advanced
+                a. create dim_dates table and is in the correct_position
                 
         This test verifies that the parquet for the sales table is created, this may have to be refactored lol
 
@@ -233,18 +245,14 @@ class Test_create_designs_table:
         
             
         """
-        global sales_schema
         # assemble
-        #datetime_string = return_datetime_string()
-        #s3_key__sales_injection = return_s3_key__injection_bucket("sales_table", datetime_string)
-        #s3_key__sales_processed = return_s3_key__processed_bucket("sales_table", "sales_schema", datetime_string)
-        #
-        #df_sales_totesys = read_s3_table_json(s3_client, s3_key__sales_totesys, hardcoded_variables["ingestion_bucket_name"])
-        #
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str
+        inj_file_key = return_s3_key("dim_dates", datetime_string)
+        df_totesys_sales_order = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         
         # act
-        df_sales = transform_df_sales_table()
-        response = populate_parquet_file(s3_client, datetime_string, df_sales_totesys, hardcoded_variables["processing_bucket_name"])
+        df_dim_dates = _return_df_dim_dates(df_totesys_sales_order)
+        response     = populate_parquet_file(s3_client, datetime_string, "sales_schema", df_dim_dates, hardcoded_variables["processing_bucket_name"])
         
         # assert - response good
         ### assert response = "goooooooood"

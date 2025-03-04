@@ -18,8 +18,11 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     return df
     
 
-def transform_df_sales_table(df_sales_totesys, bucket_name):
-    """initial draft of transformation processes
+def _return_df_dim_dates(df_totesys_sales_order):
+    """
+    This is a placeholder
+    
+    initial draft of transformation processes
     
     this will be refactor but is a bit of a PoC (proof of concept)
     
@@ -31,5 +34,6 @@ def transform_df_sales_table(df_sales_totesys, bucket_name):
     
     pass 
 
-def populate_parquet_file(s3_client, datetime_string, df_file, bucket_name):
+
+def populate_parquet_file(s3_client, datetime_string, schema_name, df_file, bucket_name):
     pass
