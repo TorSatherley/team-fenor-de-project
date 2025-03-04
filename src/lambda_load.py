@@ -17,7 +17,7 @@
 # Idea: get lambda 2 to return the filename (key) of the folder that was just uploaded
 
 
-from src.lambda_extract import get_secret, create_conn
+from src.lambda_extract import get_secret, create_conn, close_db
 import os
 import boto3
 import pandas as pd
@@ -32,34 +32,33 @@ s3_client = boto3.client("s3", region_name="eu-west-2")
 # This is in the response of labda-2
 # {message :fdfqd, latest_folder:"fsdqfds"}
 
-def get_list_of_parquets(s3_client, latest_folder):
-    """Returns a list of keys in side the latest folder"""
+def convert_parquets_to_dataframes(s3_client, latest_folder):
+    """Returns a list of dataframes from each parquet in the latest folder"""
     pass
-    #keys = [file_path for file_path in ]
-    #return keys
+    # dataframe_list = []
+    # for parq in parqs in latestfolder: << s3.listobjects prefixed with latest_folder name
+    #   df = pd.read_parquet(parquet_file_keys, s3_client) << might be this?
+    #   df = pd.read_parquet(BytesIO(df_parquet_bytes)) << maybe this one?
+    #   dataframe_list.append(df)
+    # return dataframe_list
 
-# Convert from Parquet --> pd.DataFrame
-# Alternative: input list of keys instead of single key
-def parquet_to_pandas_df(parquet_file_key):
-    pass
-    df = pd.read_parquet(parquet_file_key)
-    #df = pd.read_parquet(BytesIO(df_parquet_bytes))
-    return df
 
 # Upload each Parquet file to respective table in db (warehouse)
-
-# Alternative: input list of dataframes instead of single dataframe
-def upload_df_to_warehouse(sm_client, df):
-    pass
+def upload_df_to_warehouse(conn, df_list):
+    # for each dataframe in df_list:
+    #   format the query with tablename
+    #   upload that dataframe to the corresponding table on the db
     # return response
+    pass
 
 
 def lambda_handler(event, contenxt):
     try:
         s3_file_path = event["s3_file_path"]
-        keys = get_list_of_parquets(s3_client, s3_file_path)
-        dfs = parquet_to_pandas_df(keys)
-        upload_df_to_warehouse(sm_client, dfs)
+        dfs = convert_parquets_to_dataframes(s3_client, s3_file_path)
+        conn = create_conn(sm_client, secret_name)
+        upload_df_to_warehouse(conn, dfs)
+        close_db()
         return {"message": "Success"}
     except: # Choose exceptions to handle
         return {"message": "Failure"}
