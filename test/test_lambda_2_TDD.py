@@ -55,8 +55,6 @@ Actions:
 
 
 
-
-
 #%% Placeholder Variables and Functions - These are hard-coded currently and may need to be made more programmic
 
 class DummyContext:
@@ -106,18 +104,22 @@ def s3_client(hardcoded_variables):
             CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         yield s3
 
-
-def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str(s3_client):
+@pytest.fixture()
+def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str(s3_client, hardcoded_variables):
     # just populates a single jsonl file into a mock bucket for unit testing
     datetime_str = return_datetime_string()
     key = return_s3_key("sales_order", datetime_str)
     
     # act
     with open("data/json_lines_s3_format/sales_order.jsonl", "rb") as file:
-        s3_client.put_object(Bucket=hardcoded_variables[""], Key=key, Body=file)
+        s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=key, Body=file.read())
+    
+    with open("data/json_lines_s3_format/address.jsonl", "rb") as file:
+            s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=inj_file_key, Body=file.read())
+    
+    
     
     yield s3_client, datetime_str
-
 
 @pytest.fixture()
 def example_sales_order_table(hardcoded_variables):
@@ -175,7 +177,7 @@ def sales_order_table_columns():
 #@pytest.mark.timeout(10)
 class Test_read_s3_table_json:
 
-    
+    #@pytest.mark.skip
     def test_1a_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
         """
         this particially addresses:
@@ -223,9 +225,7 @@ class Test_create_designs_table:
     Post test there will be more complex/comprehensive test sfor the larger requested star schemas (reusing much of this code)
     
     """
-    
-    @pytest.mark.skip()
-    def test_2a_dim_dates_table_is_created_in_correct_position(s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables):
+    def test_2a_dim_dates_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables):
         """
         this particially addresses:
             1. Must place the results in the "processed" S3 bucket. 
@@ -247,20 +247,34 @@ class Test_create_designs_table:
         """
         # assemble
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str
-        inj_file_key = return_s3_key("dim_dates", datetime_string)
+        inj_file_key = return_s3_key("sales_order", datetime_string)
         df_totesys_sales_order = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
+        df_dim_dates_name = "dim_dates"
+        hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        print(" ------- df_totesys_sales_order ------- ")
+        print(df_totesys_sales_order[:hardcode_limit])
         
         # act
-        df_dim_dates = _return_df_dim_dates(df_totesys_sales_order)
-        response     = populate_parquet_file(s3_client, datetime_string, "sales_schema", df_dim_dates, hardcoded_variables["processing_bucket_name"])
+        df_dim_dates = _return_df_dim_dates(df_totesys_sales_order[:hardcode_limit])
+        response     = populate_parquet_file(s3_client, datetime_string, df_dim_dates_name, df_dim_dates, hardcoded_variables["processing_bucket_name"])
         
-        # assert - response good
-        ### assert response = "goooooooood"
+        print("  ")
+        print(" ------- df_dim_dates ------- ")
+        print(df_dim_dates.head(hardcode_limit))
         
-        # assert - design parquet file exists
-        respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["ingestion_bucket_name"])
-        actual_tables_keys = [i["Key"] for i in respose_actual_tables_keys["Contents"]]
-        assert actual_tables_keys == [s3_key__sales_processed]
+        
+        # assert - df_dim_dates type
+        assert isinstance(df_dim_dates, pd.DataFrame)
+        
+        
+        # # assert - response good
+        # assert response["message"] == "success"
+        # 
+        # # assert - design parquet file exists
+        # respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        # actual_tables_keys = [i["Key"] for i in respose_actual_tables_keys["Contents"]]
+        # assert actual_tables_keys == [return_s3_key(df_dim_dates_name, datetime_string)]
             
         # assert TODO - parquet has right columns
         
@@ -271,5 +285,3 @@ class Test_create_designs_table:
         print("")
         
     
-
-        

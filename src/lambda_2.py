@@ -13,8 +13,9 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     """
     response = s3_client.get_object(Bucket=ingestion_bucket_name, Key=s3_key)
     jsonl_data = response['Body'].read().decode('utf-8')
+     
     df = pd.DataFrame([json.loads(line) for line in jsonl_data.strip().split("\n")])
-        
+    
     return df
     
 
@@ -30,10 +31,8 @@ def _return_df_dim_dates(df_totesys_sales_order):
     
     return df
     """
-    
-    
     pass 
 
 
-def populate_parquet_file(s3_client, datetime_string, schema_name, df_file, bucket_name):
+def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     pass
