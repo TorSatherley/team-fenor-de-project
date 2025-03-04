@@ -1,5 +1,5 @@
 import json
-from  datetime import datetime
+from  datetime import datetime, date
 import boto3
 import io
 import pandas as pd
@@ -52,6 +52,11 @@ def simple_read_parquet_file_into_dataframe(bucket_name, key, s3_client):
     df = pd.read_parquet(buffer)
     return df
     
-
+def return_week(date_isoformat_str):
+    date_object = date.fromisoformat(date_isoformat_str)
+    weekday_num = date_object.isoweekday()
+    weekday_name_dict = {1 : "monday", 2 : "tuesday", 3 : "wednesday", 4 : "thursday", 5 : "friday", 6 : "saturday", 7 : "sunday"}
+    weekday_name = weekday_name_dict[weekday_num]
+    return weekday_num, weekday_name    
 
     

@@ -256,7 +256,7 @@ class Test_create_designs_table:
         expected_dates = return_unique_dates_mentioned_in_first_10_rows_of_sale_table
         
         print(" ------- df_totesys_sales_order ------- ")
-        print(df_totesys_sales_order[:hardcode_limit])
+        #print(df_totesys_sales_order[:hardcode_limit])
         # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
         
         # act
