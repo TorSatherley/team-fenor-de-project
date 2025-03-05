@@ -38,7 +38,7 @@ def lambda_handler(event, context):
         )
         table_names = [table[0] for table in table_query]
 
-        date_and_time = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        date_and_time = datetime.today().strftime('%Y%m%d_%H%M%S')
 
         for table in table_names:
             # Query the table
