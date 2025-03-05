@@ -1,8 +1,10 @@
 import os
+import json
 from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
+from pg8000.exceptions import DatabaseError
 
 from src.utils import get_secret, create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file
 
@@ -57,6 +59,6 @@ def lambda_handler(event, context):
             f"Log: Batch extraction completed - {datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}"
         )
         return {"message": "Batch extraction job completed"}
-    except (ClientError, NoCredentialsError, Exception) as e:
+    except (ClientError, NoCredentialsError, ValueError, json.JSONDecodeError, KeyError, DatabaseError, Exception) as e:
         print(f"Batch extraction job failed: {e}")
         return {"message": "Batch extraction job failed", "error": str(e)}

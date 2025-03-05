@@ -1,14 +1,12 @@
 import os
 import json
-import botocore.exceptions
 import pytest
 import boto3
 from moto import mock_aws
 from dotenv import load_dotenv
 import pg8000.native
-import botocore
-from botocore.exceptions import ClientError
-from datetime import datetime, date
+from botocore.exceptions import ClientError, NoCredentialsError
+from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 import tempfile
 from src.utils import get_secret, create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file, json_to_pg8000_output
@@ -97,26 +95,26 @@ def bucket(s3):
 class TestGetSecret:
     @pytest.mark.it("Secret is retrieved")
     def test_get_secret_retrieves_secret(self, mock_secrets_client, mock_secret):
+        """Test successful retrieval of secret"""
         mock_get_secret_value = MagicMock()
         mock_secrets_client.get_secret_value = mock_get_secret_value
-
-        mock_get_secret_value.return_value = {
-            "SecretString": json.dumps(mock_secret)
-        }
         mock_secret_name = "test-secret"
+        mock_get_secret_value.return_value = {"SecretString": json.dumps(mock_secret)}
         response = get_secret(mock_secrets_client, mock_secret_name)
         assert response == mock_secret
 
     @pytest.mark.it("Getting a secret returns a client error")
     def test_get_secret_returns_client_error(self, mock_secrets_client):
+        """Test AWS ClientError is correctly raised"""
         mock_secret_name = "test-secret"
-        with pytest.raises(botocore.exceptions.ClientError):
+        with pytest.raises(ClientError):
             get_secret(mock_secrets_client, mock_secret_name)
 
     @pytest.mark.it("Error is shown if secret does not exist")
     def test_secret_does_not_exist(self, mock_secrets_client):
+        """Test handling of missing secret"""
         mock_secret_name = "test-secret"
-        with pytest.raises(botocore.exceptions.ClientError) as excinfo:
+        with pytest.raises(ClientError) as excinfo:
             result = get_secret(mock_secrets_client, mock_secret_name)
             mock_secrets_client.get_secret_value(SecretId="not-here")
             assert "Secrets Manager can't find the specified secret" in str(
@@ -124,23 +122,16 @@ class TestGetSecret:
             )
             assert result == "Error: Secrets Manager can't find the specified secret."
 
-    @pytest.mark.it("Environment variable is wrong or does not exist for secret")
-    @patch("dotenv.load_dotenv")
-    @patch.dict(os.environ, {"SECRET_NAME": "wrong_env"})
-    def test_wrong_or_no_dotenv_variable(self, mock_dotenv, mock_secrets_client):
-
-        load_dotenv()
-
-        secret_id = os.getenv("SECRET_NAME")
-        assert secret_id == "wrong_env"
+    @pytest.mark.it("Raises NoCredentialsError if AWS credentials are missing")
+    def test_get_secret_no_credentials(self, mock_secrets_client):
+        """Test NoCredentialsError when AWS credentials are missing"""
+        mock_secrets_client = Mock()
         mock_secret_name = "test-secret"
-        with pytest.raises(botocore.exceptions.ClientError) as excinfo:
-            result = get_secret(mock_secrets_client, mock_secret_name)
-            assert "Secrets Manager can't find the specified secret" in str(
-                excinfo["Error"]["Message"]
-            )
-            assert result == "Error: Secrets Manager can't find the specified secret."
+        mock_secrets_client.get_secret_value.side_effect = NoCredentialsError
+        with pytest.raises(NoCredentialsError):
+            get_secret(mock_secrets_client, mock_secret_name)
 
+    @pytest.mark.it("Raises ValueError if secret_name is None")
     def test_get_secret_no_secret_name(self):
         """Test when secret_name is None."""
         sm_client = MagicMock()
@@ -149,38 +140,52 @@ class TestGetSecret:
         ):
             get_secret(sm_client, None)
 
+    @pytest.mark.it("Raises JSONDecodeError if secret string is not valid JSON")
     def test_get_secret_invalid_json(self):
         """Test JSONDecodeError when secret string is not valid JSON."""
+        mock_secret_name = "test-secret"
         sm_client = MagicMock()
         sm_client.get_secret_value.return_value = {"SecretString": "{invalid-json"}
 
         with pytest.raises(json.JSONDecodeError):
-            get_secret(sm_client, "my-secret")
+            get_secret(sm_client, mock_secret_name)
 
+    @pytest.mark.it("Raises KeyError if SecretString is missing from response")
     def test_get_secret_key_error(self):
         """Test KeyError when SecretString is missing from response."""
         sm_client = MagicMock()
+        mock_secret_name = "test-secret"
         sm_client.get_secret_value.return_value = {}
 
         with pytest.raises(KeyError):
-            get_secret(sm_client, "my-secret")
+            get_secret(sm_client, mock_secret_name)
+    
+    @pytest.mark.it("Raises generic Exception for unexpected errors")
+    def test_get_secret_unexpected_error(self):
+        """Test handling of unexpected errors"""
+        mock_secrets_client = Mock()
+        mock_secrets_client.get_secret_value.side_effect = Exception("Unexpected failure")
+        mock_secret_name = "test-secret"
+        with pytest.raises(Exception, match="Unexpected failure"):
+            get_secret(mock_secrets_client, mock_secret_name)
+    
+    @pytest.mark.it("Environment variable is wrong or does not exist for secret")
+    @patch("dotenv.load_dotenv")
+    @patch.dict(os.environ, {"SECRET_NAME": "wrong_env"})
+    def test_wrong_or_no_dotenv_variable(self, mock_dotenv, mock_secrets_client):
+        """Test handling of wrong environment variable"""
+        secret_id = os.getenv("SECRET_NAME")
+        assert secret_id == "wrong_env"
+        mock_secret_name = "test-secret"
+        with pytest.raises(ClientError) as excinfo:
+            result = get_secret(mock_secrets_client, mock_secret_name)
+            assert "Secrets Manager can't find the specified secret" in str(
+                excinfo["Error"]["Message"]
+            )
+            assert result == "Error: Secrets Manager can't find the specified secret."
 
 
 class TestConnection:
-    @pytest.mark.it("Connection to database is established and retrieves data")
-    @patch("src.utils.get_secret")
-    def test_connection_to_database_is_established(
-        self, mock_get_secret, mock_secret, mock_totesys_connection
-    ):
-        mock_get_secret.return_value = mock_secret
-        mock_totesys_connection.run = Mock(
-            side_effect=[{"sales_order_id": 2, "unit_price": 3.94}]
-        )
-        result = mock_totesys_connection.run(
-            "SELECT sales_order_id, unit_price FROM sales"
-        )
-        assert result == {"sales_order_id": 2, "unit_price": 3.94}
-
     @pytest.mark.it("Connection to database is established and retrieves data")
     @patch("src.utils.Connection")
     def test_create_conn(

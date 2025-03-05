@@ -4,7 +4,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError, NoCredentialsError
 import pandas as pd
 from pg8000.native import Connection
-import pg8000.exceptions
+from pg8000.exceptions import DatabaseError
 
 def get_secret(sm_client, secret_name):
     """Retrieves database secrets from AWS Secrets Manager."""
@@ -15,7 +15,8 @@ def get_secret(sm_client, secret_name):
         secret = get_secret_value_response["SecretString"]
         secrets = json.loads(secret)
         return secrets
-    except (ClientError, NoCredentialsError, json.JSONDecodeError, KeyError) as e:
+    except (ClientError, NoCredentialsError, ValueError, json.JSONDecodeError, KeyError, Exception) as e:
+        print(f"Secret retrieval error: {e}")
         raise e
 
 
@@ -29,7 +30,7 @@ def create_conn(db_credentials):
             host=db_credentials["host"],
         )
         return db_connection
-    except (KeyError, pg8000.exceptions.DatabaseError, Exception) as e:
+    except (KeyError, DatabaseError, Exception) as e:
         print(f"Database connection error: {e}")
         raise e
 
@@ -68,7 +69,7 @@ def write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_tim
         key = f"data/{date_and_time}/{table}.jsonl"
         s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
         return key
-    except (NoCredentialsError, ClientError, ValueError, Exception) as e:
+    except (ClientError, NoCredentialsError, ValueError, Exception) as e:
         print(f"Error writing {table} to S3: {e}")
         return None
 
@@ -90,7 +91,7 @@ def log_file(s3_client, bucket_name, keys):
             Key=f"logs/{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.log",
         )
         return {"message": "Files Processed: Batch Lambda Transform complete"}
-    except (ClientError, NoCredentialsError) as e:
+    except (ClientError, NoCredentialsError, Exception) as e:
         print(f"Error logging files to S3: {e}")
 
 
