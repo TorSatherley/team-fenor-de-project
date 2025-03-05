@@ -8,6 +8,7 @@ from copy import copy
 import pyarrow as pa
 import pyarrow.parquet as pq
 from botocore.exceptions import ClientError
+from io import BytesIO
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -83,19 +84,17 @@ def _return_df_dim_design(df_totesys_design):
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     
-    try:
-        key = return_s3_key(table_name, datetime_string)
-
-        table = pa.Table.from_pandas(df_file)
-        
-        writer = pa.BufferOutputStream()
-        pq.write_table(table, writer)
-        body = bytes(writer.getvalue())
-
-        response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
+    #try:
+    key = return_s3_key(table_name, datetime_string)
+    table = pa.Table.from_pandas(df_file)
     
-        return response
-    except ClientError as e:
-        return {"message": "Error", "details": str(e)}
+    buffer = io.BytesIO()
+    pq.write_table(table, buffer)
+    buffer.seek(0)  # Reset buffer positio
+    response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
+
+    return response
+    #except ClientError as e:
+    #    return {"message": "Error", "details": str(e)}
     
     

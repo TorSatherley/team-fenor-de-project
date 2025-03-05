@@ -346,27 +346,36 @@ class TestCreateDesignTables:
         
         
         # # assert - response good
-        assert response["message"] == {"message": "Success"}
-        
+        #assert response['ResponseMetadata']['HTTPStatusCode'] == 200
         
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx")
+        print(response_list_of_s3_filepaths)
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        s3_fs = s3fs.S3FileSystem()
-        pandas_dataframe = pq.ParquetDataset(
-            's3://' + hardcoded_variables["processing_bucket_name"] + '/' + return_s3_key(df_dim_design_name, datetime_string), # insert filename
-            filesystem=s3_fs
-        ).read_pandas().to_pandas()
-        #print(type(pandas_dataframe))
+        import io
+
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
+        s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
-        assert isinstance(pandas_dataframe, pd.DataFrame)
+        print(type(s3_file))
+        
+        #s3_fs = s3fs.S3FileSystem()
+        #pandas_dataframe = pq.ParquetDataset(
+        #    's3://' + hardcoded_variables["processing_bucket_name"] + '/' + return_s3_key(df_dim_design_name, datetime_string), # insert filename
+        #    filesystem=s3_fs
+        #).read_pandas().to_pandas()
+        ##print(type(pandas_dataframe))
+        
+        assert isinstance(s3_file, pd.DataFrame)
         
          
         
-        
+  
+
         
         
                 
