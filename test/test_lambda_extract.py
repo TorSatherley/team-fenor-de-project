@@ -17,6 +17,7 @@ from src.lambda_extract import (
 
 
 # patch the namespaces of all of the util functions that lamba handler uses
+@patch("src.lambda_extract.get_secret")
 @patch("src.lambda_extract.create_conn")
 @patch("src.lambda_extract.get_rows_and_columns_from_table")
 @patch("src.lambda_extract.write_table_to_s3")
@@ -28,11 +29,13 @@ def test_lambda_handler(
     mock_write_table_to_s3,
     mock_get_rows_columns,
     mock_create_conn,
+    mock_get_secret,
     capsys,
 ):
 
     # ASSEMBLE:
 
+    mock_get_secret.return_value = {"dbname": "test_db", "user": "test_user"}
     # create some table names that will serve as the return from create_conn
     # mock create conn return value
     mock_conn = MagicMock()
@@ -71,10 +74,13 @@ def test_lambda_handler(
     # this could just be an empty mock() as at won't actually be interacting with boto3 at all
     mock_s3_client = boto3.client("s3")
 
-    # ACT:
+    bucket_name = "test-bucket"
 
-    with patch("src.lambda_extract.s3_client", mock_s3_client):
-        with patch("src.lambda_extract.datetime") as mock_datetime:
+    # ACT:
+    
+    with patch("src.lambda_extract.s3_client", mock_s3_client), \
+         patch("src.lambda_extract.bucket_name", bucket_name), \
+         patch("src.lambda_extract.datetime") as mock_datetime:
             test_date = date(2025, 7, 23)
             mock_datetime.today.return_value = test_date
             mock_datetime.side_effect = lambda *args, **kw: datetime.strftime(
@@ -94,7 +100,7 @@ def test_lambda_handler(
     mock_get_rows_columns.assert_any_call(mock_conn, "staff")
     mock_write_table_to_s3.assert_any_call(
         mock_s3_client,
-        None,
+        bucket_name,
         "address",
         [[1, "123 Northcode Road", "Leeds"], [2, "66 Fenor Drive", "Manchester"]],
         ["address_ID", "address", "city"],
@@ -102,7 +108,7 @@ def test_lambda_handler(
     )
     mock_write_table_to_s3.assert_any_call(
         mock_s3_client,
-        None,
+        bucket_name,
         "staff",
         [
             [1, "Connor", "Creed", "creedmoney@gmail.com"],

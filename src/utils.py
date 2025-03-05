@@ -30,7 +30,7 @@ def create_conn(db_credentials):
             host=db_credentials["host"],
         )
         return db_connection
-    except (KeyError, DatabaseError, Exception) as e:
+    except (DatabaseError, TypeError, KeyError, Exception) as e:
         print(f"Database connection error: {e}")
         raise e
 
@@ -39,7 +39,7 @@ def close_db(conn):
     """Closes the database connection."""
     try:
         conn.close()
-    except Exception as e:
+    except (AttributeError, Exception) as e:
         print(f"Error closing database connection: {e}")
         raise e
 
@@ -93,6 +93,7 @@ def log_file(s3_client, bucket_name, keys):
         return {"message": "Files Processed: Batch Lambda Transform complete"}
     except (ClientError, NoCredentialsError, Exception) as e:
         print(f"Error logging files to S3: {e}")
+        return None
 
 
 
