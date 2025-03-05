@@ -3,7 +3,7 @@ name: project-feanor-mvp-pipeline
 on:
   push:
     branches:
-      - lambda-1-coverage-and-error_handling
+      - demolish-global-variable-dependence-in-lambda-1
   pull_request:
     branches:
       - main
