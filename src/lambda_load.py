@@ -32,9 +32,10 @@ s3_client = boto3.client("s3", region_name="eu-west-2")
 # This is in the response of labda-2
 # {message :fdfqd, latest_folder:"fsdqfds"}
 
+
 def convert_parquets_to_dataframes(s3_client, latest_folder):
     """Returns a list of dataframes from each parquet in the latest folder"""
-    pass
+    return None
     # dataframe_list = []
     # for parq in parqs in latestfolder: << s3.listobjects prefixed with latest_folder name
     #   df = pd.read_parquet(parquet_file_keys, s3_client) << might be this?
@@ -60,5 +61,5 @@ def lambda_handler(event, contenxt):
         upload_dfs_to_warehouse(conn, dfs)
         close_db(conn)
         return {"message": "Success"}
-    except: # Choose exceptions to handle
+    except:  # Choose exceptions to handle
         return {"message": "Failure"}

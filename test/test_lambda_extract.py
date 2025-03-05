@@ -107,9 +107,7 @@ class TestGetSecret:
         mock_get_secret_value = MagicMock()
         mock_secrets_client.get_secret_value = mock_get_secret_value
 
-        mock_get_secret_value.return_value = {
-            "SecretString": json.dumps(mock_secret)
-        }
+        mock_get_secret_value.return_value = {"SecretString": json.dumps(mock_secret)}
         mock_secret_name = "test-secret"
         response = get_secret(mock_secrets_client, mock_secret_name)
         assert response == mock_secret
