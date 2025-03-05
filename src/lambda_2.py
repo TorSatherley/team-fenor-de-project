@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import datetime
 from src.util import return_week
+from copy import copy
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -70,15 +71,18 @@ def _return_df_dim_dates(df_totesys_sales_order):
     
     
 def _return_df_dim_design(df_totesys_design):
-    columns = ['design_id', 'design_name', "location_value", "name_value"]
-    df_reduced = df_totesys_design.loc[:,columns]
+    columns = ['design_id', 'design_name', "file_location", "file_name"]
+    df_design_copy = copy(df_totesys_design)
+    df_reduced = df_design_copy.loc[:,columns]
     
-    for col in columns:
-        df_reduced[col] = df_reduced[col].apply(lambda x: x[:10])
+    # for col in columns:
+    #     df_reduced[col] = df_reduced[col].apply(lambda x: x[:10])
 
-    data = []
+    # data = []
     
-    df_dim_design = pd.DataFrame(data=data, columns=columns)
+    # df_dim_design = pd.DataFrame(data=df_totesys_design, columns=columns)
+    # df_dim_design.set_index("design_id", inplace=True)
+    return df_reduced
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     pass
