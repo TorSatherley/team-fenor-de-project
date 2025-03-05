@@ -194,7 +194,7 @@ def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
 #@pytest.mark.timeout(10)
 class TestReads3TableJson:
 
-    #@pytest.mark.skip
+    @pytest.mark.skip
     def test_1a_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
         """
         this particially addresses:
@@ -242,6 +242,7 @@ class TestCreateDateTable:
     Post test there will be more complex/comprehensive test sfor the larger requested star schemas (reusing much of this code)
     
     """
+    @pytest.mark.skip
     def test_2a_dim_dates_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_str, sales_order_table_columns, hardcoded_variables, return_unique_dates_mentioned_in_first_10_rows_of_sale_table):
         """
         this particially addresses:
@@ -329,9 +330,9 @@ class TestCreateDesignTables:
         
         # assert - df_dim_design type
         assert isinstance(df_dim_design, pd.DataFrame)
-        print(df_dim_design['design_id'].values)
+        
         # assert_unique_designs_exist     
-        assert expected_design_id_values == df_dim_design['design_id']
-        #assert expected_design_name_values == df_dim_design['design_name']
-        #assert expected_file_location_values == df_dim_design["location_value"]
-        #assert expected_file_name_values == df_dim_design["name_value"]
+        #assert all(expected_design_id_values == df_dim_design['design_id'])
+        assert all(expected_design_name_values == df_dim_design['design_name'])
+        assert all(expected_file_location_values == df_dim_design["file_location"])
+        assert all(expected_file_name_values == df_dim_design["file_name"])

@@ -15,8 +15,7 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     """
     response = s3_client.get_object(Bucket=ingestion_bucket_name, Key=s3_key)
     jsonl_data = response['Body'].read().decode('utf-8')
-     
-    df = pd.DataFrame([json.loads(line) for line in jsonl_data.strip().split("\n")])
+    df = pd.DataFrame([json.loads(line.replace("\\", "\\\\")) for line in jsonl_data.strip().split("\n")])
     
     return df
 
@@ -71,17 +70,12 @@ def _return_df_dim_dates(df_totesys_sales_order):
     
     
 def _return_df_dim_design(df_totesys_design):
+    
     columns = ['design_id', 'design_name', "file_location", "file_name"]
     df_design_copy = copy(df_totesys_design)
     df_reduced = df_design_copy.loc[:,columns]
+    df_reduced.set_index("design_id", inplace=True)
     
-    # for col in columns:
-    #     df_reduced[col] = df_reduced[col].apply(lambda x: x[:10])
-
-    # data = []
-    
-    # df_dim_design = pd.DataFrame(data=df_totesys_design, columns=columns)
-    # df_dim_design.set_index("design_id", inplace=True)
     return df_reduced
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
