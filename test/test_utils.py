@@ -182,20 +182,13 @@ class TestConnection:
         assert result == {"sales_order_id": 2, "unit_price": 3.94}
 
     @pytest.mark.it("Connection to database is established and retrieves data")
-    @patch("src.utils.get_secret")
     @patch("src.utils.Connection")
     def test_create_conn(
-        self, mock_Connection, mock_get_secret, mock_secret, mock_totesys_connection
+        self, mock_Connection, mock_secret, mock_totesys_connection
     ):
-        mock_get_secret.return_value = mock_secret
         mock_Connection.return_value = mock_totesys_connection
-        with mock_aws():
-            mock_sm_client = boto3.client(
-                service_name="secretsmanager", region_name="eu-west-2"
-            )
-            conn = create_conn(mock_sm_client, mock_secret)
+        conn = create_conn(mock_secret)
 
-        mock_get_secret.assert_called_once()
         mock_Connection.assert_called_once()
         assert conn == mock_totesys_connection
 
@@ -209,47 +202,35 @@ class TestConnection:
     def test_close_db_exception(self):
         """Test exception when closing the database connection."""
         mock_conn = MagicMock()
-        mock_conn.close.side_effect = Exception("Close failed")  # Simulate an error
+        mock_conn.close.side_effect = Exception("Close failed")
 
         with pytest.raises(Exception, match="Close failed"):
             close_db(mock_conn)
 
-    @patch("src.utils.get_secret", autospec=True)
-    def test_create_conn_missing_key(self, mock_get_secret):
+    @patch("src.utils.Connection")
+    def test_create_conn_missing_key(self, mock_Connection, mock_secret, mock_totesys_connection):
         """Test KeyError when required fields are missing in credentials."""
-        mock_get_secret.return_value = {
+        mock_Connection.return_value = mock_totesys_connection
+        mock_secret = {
             "username": "admin",
             "password": "1234",
             "host": "localhost",
             # Missing "dbname"
         }
-
-        sm_client = MagicMock()
-
+        
         with pytest.raises(KeyError):
-            create_conn(sm_client, mock_secret)
+            create_conn(mock_secret)
+    
+    @patch("src.utils.Connection")
+    def test_create_conn_database_error(self, mock_Connection, mock_secret):
+        mock_Connection.side_effect = pg8000.exceptions.DatabaseError("Mock database error")
+        with pytest.raises(pg8000.exceptions.DatabaseError, match="Mock database error"):
+            create_conn(mock_secret)
 
-    @patch("src.utils.get_secret", autospec=True)
-    def test_create_conn_aws_client_error(self, mock_get_secret):
-        """Test AWS ClientError when retrieving secret fails."""
-        mock_get_secret.side_effect = ClientError(
-            {
-                "Error": {
-                    "Code": "ResourceNotFoundException",
-                    "Message": "Secret not found",
-                }
-            },
-            "GetSecretValue",
-        )
-
-        sm_client = MagicMock()
-
-        with pytest.raises(ClientError):
-            create_conn(sm_client, mock_secret)
 
     @patch("src.utils.Connection", autospec=True)
     @patch("src.utils.get_secret", autospec=True)
-    def test_create_conn_unexpected_exception(self, mock_get_secret, mock_connection):
+    def test_create_conn_unexpected_exception(self, mock_get_secret, mock_connection, mock_secret):
         """Test unexpected exception during connection creation."""
         mock_get_secret.return_value = {
             "dbname": "test_db",
@@ -263,7 +244,7 @@ class TestConnection:
         sm_client = MagicMock()
 
         with pytest.raises(Exception, match="Database connection failed"):
-            create_conn(sm_client, mock_secret)
+            create_conn(mock_secret)
 
 
 class TestRowsAndColumns:

@@ -4,7 +4,7 @@ from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from src.utils import create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file
+from src.utils import get_secret, create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file
 
 secret_name = os.environ.get("SECRET_NAME")
 bucket_name = os.environ.get("BUCKET_NAME")
@@ -21,10 +21,12 @@ def lambda_handler(event, context):
     Returns:
         Dict containing status message
     """
-
     try:
+        # Get secrets
+        db_credentials = get_secret(sm_client, secret_name)
+
         # Create connection
-        conn = create_conn(sm_client)
+        conn = create_conn(db_credentials)
 
         keys = []
 

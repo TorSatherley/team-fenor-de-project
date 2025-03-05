@@ -4,6 +4,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError, NoCredentialsError
 import pandas as pd
 from pg8000.native import Connection
+import pg8000.exceptions
 
 def get_secret(sm_client, secret_name):
     """Retrieves database secrets from AWS Secrets Manager."""
@@ -18,10 +19,9 @@ def get_secret(sm_client, secret_name):
         raise e
 
 
-def create_conn(sm_client, secret_name):
+def create_conn(db_credentials):
     """Establishes a connection to the database using secrets."""
     try:
-        db_credentials = get_secret(sm_client, secret_name)
         db_connection = Connection(
             database=db_credentials["dbname"],
             user=db_credentials["username"],
@@ -29,7 +29,7 @@ def create_conn(sm_client, secret_name):
             host=db_credentials["host"],
         )
         return db_connection
-    except (KeyError, ClientError, Exception) as e:
+    except (KeyError, pg8000.exceptions.DatabaseError, Exception) as e:
         print(f"Database connection error: {e}")
         raise e
 
