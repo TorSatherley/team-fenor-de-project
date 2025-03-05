@@ -33,8 +33,8 @@ def mock_s3():
 
 @pytest.fixture(scope="function")
 def mock_populated_s3_client(mock_s3):
-    """use the mocked s3 client to create and populate a mocked s3 bucket with 
-       parquet files ready to be used for testing"""
+    """use the mocked s3 client to create and populate a mocked s3 bucket with
+    parquet files ready to be used for testing"""
     mock_s3.create_bucket(
         Bucket="test_bucket",
         CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -58,41 +58,43 @@ def mock_populated_s3_client(mock_s3):
     yield mock_s3
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def list_of_dataframes():
-    '''returns the correct dataframes for the two parquet files used for testing'''
+    """returns the correct dataframes for the two parquet files used for testing"""
     parquet_file_1 = f"{os.getcwd()}/test/parquet/dim_counterparty.parquet"
     parquet_file_2 = f"{os.getcwd()}/test/parquet/fact_sales_order.parquet"
-    df_1 = pd.read_parquet(parquet_file_1, engine='pyarrow')
-    df_2 = pd.read_parquet(parquet_file_2, engine='pyarrow')
+    df_1 = pd.read_parquet(parquet_file_1, engine="pyarrow")
+    df_2 = pd.read_parquet(parquet_file_2, engine="pyarrow")
     return [df_1, df_2]
 
 
-
 class TestConvertParquetsToDataframes:
-    def test_function_returns_dataframe_list_for_s3_filepath(self, mock_populated_s3_client, list_of_dataframes):
-        # ARRANGE
-        latest_folder_s3_filepath = 'data/20250305_093915/'
-        # ACT
-        result = convert_parquets_to_dataframes(mock_populated_s3_client, latest_folder_s3_filepath, 'test_bucket')
-        # ASSERT
+
+    def test_function_returns_dataframe_list_for_s3_filepath(
+        self, mock_populated_s3_client, list_of_dataframes
+    ):
+        latest_folder_s3_filepath = "data/20250305_093915/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
         pd.testing.assert_frame_equal(result[0], list_of_dataframes[0])
         pd.testing.assert_frame_equal(result[1], list_of_dataframes[1])
 
-    # test function isnt collecting items from any other folders
-    # test function handles exceptions suitably (client and pandas)
+    def test_function_isnt_collecting_items_from_any_other_folders(
+        self, mock_populated_s3_client
+    ):
+        latest_folder_s3_filepath = "data/20250305_092045/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
+        assert len(result) == 2
 
-    # ARRANGE
-    # mock aws s3 client
-    # put some test parquet files and folders into it
-    # make a test latest_folder folder path
-
-    # ACT
-    # call get_list_of_parquets with mocked s3_client and test latest_folder filepath
-
-    # ASSERT
-    # assert funct returns the correct list of dataframes
-    pass
+    def test_function_handles_exceptions_suitably(self, mock_populated_s3_client):
+        latest_folder_s3_filepath = "data/invalidpath/20250305_092045/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
+        assert "Error:" in result["message"]
 
 
 class TestUploadDfToWarehouse:
@@ -116,4 +118,45 @@ class TestUploadDfToWarehouse:
 
 
 class TestLambdaHandler:
-    pass
+
+    @patch('src.lambda_load.secret_name')
+    @patch("src.lambda_load.sm_client")
+    @patch("src.lambda_load.bucket_name")
+    @patch("src.lambda_load.s3_client")
+    @patch("src.lambda_load.close_db")
+    @patch("src.lambda_load.upload_dfs_to_warehouse")
+    @patch("src.lambda_load.create_conn")
+    @patch("src.lambda_load.convert_parquets_to_dataframes")
+    def test_all_utils_called_correctly(
+        self,
+        mock_convert_parquets,
+        mock_create_conn,
+        mock_upload_to_wh,
+        mock_close_db,
+        mock_s3_client,
+        mock_bucket_name,
+        mock_sm_client,
+        mock_secret_name,
+        list_of_dataframes
+    ):
+        # ARRANGE:
+        event = {"s3_file_path": "data/20250305_092045/"}
+        context = None
+        mock_convert_parquets.return_value = list_of_dataframes
+        mock_create_conn.return_value = 'conn'
+
+        # ACT:
+        result = lambda_handler(event, context)
+
+        # ASSERT:
+        mock_convert_parquets.assert_called_once_with(
+            mock_s3_client, "data/20250305_092045/", mock_bucket_name
+        )
+        mock_create_conn.assert_called_once_with(mock_sm_client, mock_secret_name)
+        mock_upload_to_wh.assert_called_once_with('conn', list_of_dataframes)
+        mock_close_db.assert_called_once_with('conn')
+        assert result == {"message": "Successfully uploaded to database"}
+
+    #def
+
+

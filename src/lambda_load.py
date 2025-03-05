@@ -32,7 +32,7 @@ def convert_parquets_to_dataframes(s3_client, latest_folder, bucket_name):
     except Exception as e:
         return {'message': f'Error: {e}'}
 
-# Upload each Parquet file to respective table in db (warehouse)
+
 def upload_dfs_to_warehouse(conn, df_list):
     # for each dataframe in df_list:
     #   format the query with tablename
@@ -48,7 +48,7 @@ def lambda_handler(event, contenxt):
         conn = create_conn(sm_client, secret_name)
         upload_dfs_to_warehouse(conn, dfs)
         close_db(conn)
-        return {"message": "Success"}
+        return {"message": "Successfully uploaded to database"}
     except:  # Choose exceptions to handle
         return {"message": "Failure"}
 
