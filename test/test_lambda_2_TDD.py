@@ -9,7 +9,7 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, populate_parquet_file
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 
@@ -46,7 +46,7 @@ Functions tested:
 
 Actions:
     - maybe add tests to check column formats
-    
+    - fix date columns(pressing on to sort other tables out)
     - Remove the hardcoding
     - ensure that development uses environmental variable to assign bucket name
     - populate: placeholder_function_for_checking_data_placed_into_s3_folder
@@ -117,6 +117,21 @@ def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_st
     yield s3_client, datetime_str
 
 @pytest.fixture()
+def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variables):
+    # just populates a jsonl file into a mock bucket for unit testing
+    #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
+    # act
+    datetime_str = return_datetime_string()
+    jsonl_list = ["design"]
+    for jsonl_file in jsonl_list:
+        key = return_s3_key("sales_order", datetime_str)
+        with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
+            s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=key, Body=file.read())
+    
+    
+    yield s3_client, datetime_str
+
+@pytest.fixture()
 def example_sales_order_table(hardcoded_variables):
     simulated_pg8000_output, simulated_pg8000_output_cols = json_to_pg8000_output(hardcoded_variables["dict_table_snapshot_filepaths"]["sales_order"], include_cols_in_output=True)
     return simulated_pg8000_output, simulated_pg8000_output_cols
@@ -177,7 +192,7 @@ def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
 # expected_object_key = return_s3_key__injection_bucket(table_name) # Action: I reckon there is a way to extract the table name from the variable metadata
 
 #@pytest.mark.timeout(10)
-class Test_read_s3_table_json:
+class TestReads3TableJson:
 
     #@pytest.mark.skip
     def test_1a_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
@@ -216,7 +231,7 @@ class Test_read_s3_table_json:
 
 
 
-class Test_create_designs_table:
+class TestCreateDateTable:
     """
     This is a test to see if we can create (and test) the creation of the dim_designs table with the "Sales" schema
     
@@ -272,8 +287,11 @@ class Test_create_designs_table:
                                                                               df_dim_dates["day"].values))
         assert set(expected_dates) == actual_dates_stored
         
+        # assert other columns are passing correctly - we know its not working yet
+
+
         # # assert - response good
-        # assert response["message"] == "success"
+        #assert response == "success"
         # 
         # # assert - design parquet file exists
         # respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
@@ -288,4 +306,32 @@ class Test_create_designs_table:
         # assert TODO - that the file is parquet
         print("")
         
-    
+class TestCreateDesignTables:
+
+    def test_3a_dim_design_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        inj_file_key = return_s3_key("design", datetime_string)
+        df_totesys_design = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
+        df_dim_design_name = "dim_design"
+        hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        expected_design_id_values = [8, 51, 69, 16, 54, 10, 57, 41, 45, 2]
+        expected_design_name_values = ["Wooden", "Bronze", "Bronze", "Soft", "Plastic", "Soft", "Cotton", "Granite", "Frozen", "Steel"]
+        expected_file_location_values = ["\/usr", "\/private", "\/lost+found", "\/System", "\/usr\/ports", "\/usr\/share", "\/etc\/periodic", "\/usr\/X11R6", "\/Users", "\/etc\/periodic"]
+        expected_file_name_values = ["wooden-20220717-npgz.json", "bronze-20221024-4dds.json", "bronze-20230102-r904.json", "soft-20211001-cjaz.json", "plastic-20221206-bw3l.json", "soft-20220201-hzz1.json", "cotton-20220527-vn4b.json", "granite-20220125-ifwa.json", "frozen-20221021-bjqs.json", "steel-20210725-fcxq.json"]
+        print(" ------- df_totesys_sales_order ------- ")
+        #print(df_totesys_sales_order[:hardcode_limit])
+        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
+        
+        # act
+        df_dim_design = _return_df_dim_design(df_totesys_design[:hardcode_limit])
+        response     = populate_parquet_file(s3_client, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
+        
+        # assert - df_dim_design type
+        assert isinstance(df_dim_design, pd.DataFrame)
+        
+        # assert_unique_designs_exist     
+        assert expected_design_id_values == df_dim_design['design_id']
+        assert expected_design_name_values == df_dim_design['design_name']
+        assert expected_file_location_values == df_dim_design["location_value"]
+        assert expected_file_name_values == df_dim_design["name_value"]

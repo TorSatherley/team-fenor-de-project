@@ -60,16 +60,25 @@ def _return_df_dim_dates(df_totesys_sales_order):
         weekday_num, weekday_name = return_week(d)
         months_name = months_dict[int(d[5:7])]
         quarter_int = (int(d[5:7]) // 4) + 1
-        data += [[i, int(d[:4]), int(d[5:7]), int(d[8:10]), weekday_num, weekday_name, months_name, quarter_int]]
+        data += [[i, int(d[:4]), f"{int(d[5:7]):02d}", f"{int(d[8:10]):02d}", weekday_num, weekday_name, months_name, quarter_int]]
     index = range(len(data))
     columns = ["date_id", "year", "month", "day", "day_of_week", "day_name", "month_name", "quarter"]
     df_dim_dates = pd.DataFrame(data=data, columns=columns)
     
     df_dim_dates.set_index("date_id", inplace=True)
-    
     return df_dim_dates
     
+    
+def _return_df_dim_design(df_totesys_design):
+    columns = ['design_id', 'design_name', "location_value", "name_value"]
+    df_reduced = df_totesys_design.loc[:,columns]
+    
+    for col in columns:
+        df_reduced[col] = df_reduced[col].apply(lambda x: x[:10])
 
+    data = []
+    
+    df_dim_design = pd.DataFrame(data=data, columns=columns)
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     pass
