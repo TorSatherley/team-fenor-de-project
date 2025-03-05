@@ -20,6 +20,7 @@ def aws_credentials():
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
+    os.environ["BUCKET_NAME"] = "test_bucket"
     os.environ["SECRET_NAME"] = "test-secret"
 
 
@@ -32,19 +33,28 @@ def mock_s3():
 
 @pytest.fixture(scope="function")
 def mock_populated_s3_client(mock_s3):
-    """use the mocked s3 client to create and populate a mocked s3 bucket with two 
+    """use the mocked s3 client to create and populate a mocked s3 bucket with 
        parquet files ready to be used for testing"""
     mock_s3.create_bucket(
         Bucket="test_bucket",
         CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
     )
     filepath_1 = f"{os.getcwd()}/test/parquet/dim_counterparty.parquet"
-    key_1 = "data/2025_03_05__0939/dim_counterparty.parquet"
+    key_1 = "data/20250305_093915/dim_counterparty.parquet"
     mock_s3.upload_file(filepath_1, "test_bucket", key_1)
 
     filepath_2 = f"{os.getcwd()}/test/parquet/fact_sales_order.parquet"
-    key_2 = "data/2025_03_05__0939/fact_sales_order.parquet"
+    key_2 = "data/20250305_093915/fact_sales_order.parquet"
     mock_s3.upload_file(filepath_2, "test_bucket", key_2)
+
+    filepath_3 = f"{os.getcwd()}/test/parquet/dim_currency.parquet"
+    key_3 = "data/20250305_092045/dim_currency.parquet"
+    mock_s3.upload_file(filepath_3, "test_bucket", key_3)
+
+    filepath_4 = f"{os.getcwd()}/test/parquet/dim_staff.parquet"
+    key_4 = "data/20250305_092045/dim_staff.parquet"
+    mock_s3.upload_file(filepath_4, "test_bucket", key_4)
+
     yield mock_s3
 
 
@@ -62,13 +72,13 @@ def list_of_dataframes():
 class TestConvertParquetsToDataframes:
     def test_function_returns_dataframe_list_for_s3_filepath(self, mock_populated_s3_client, list_of_dataframes):
         # ARRANGE
-        latest_folder_s3_filepath = 'data/2025_03_05__0939/'
+        latest_folder_s3_filepath = 'data/20250305_093915/'
         # ACT
-        result = convert_parquets_to_dataframes(mock_populated_s3_client, latest_folder_s3_filepath)
+        result = convert_parquets_to_dataframes(mock_populated_s3_client, latest_folder_s3_filepath, 'test_bucket')
         # ASSERT
-        assert result == list_of_dataframes
+        pd.testing.assert_frame_equal(result[0], list_of_dataframes[0])
+        pd.testing.assert_frame_equal(result[1], list_of_dataframes[1])
 
-    # test working funct returns a correct dataframe list from all parquets in latest folder
     # test function isnt collecting items from any other folders
     # test function handles exceptions suitably (client and pandas)
 
