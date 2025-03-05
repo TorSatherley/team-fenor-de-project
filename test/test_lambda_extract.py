@@ -104,7 +104,7 @@ def test_lambda_handler(
         "address",
         [[1, "123 Northcode Road", "Leeds"], [2, "66 Fenor Drive", "Manchester"]],
         ["address_ID", "address", "city"],
-        "2025-07-23_00-00-00",
+        '20250723_000000',
     )
     mock_write_table_to_s3.assert_any_call(
         mock_s3_client,
@@ -115,13 +115,13 @@ def test_lambda_handler(
             [2, "Brendan", "Corbett", "yeaaboii@hotmail.co.uk"],
         ],
         ["staff_ID", "first_name", "last_name", "email"],
-        "2025-07-23_00-00-00",
+        '20250723_000000',
     )
 
     mock_log_file.assert_called_once()
     mock_log_file.assert_called_with(
         mock_s3_client,
-        None,
+        bucket_name,
         [
             "data/2025/03/28_11-15-28/address.json",
             "data/2025/03/28_11-15-31/staff.json",
