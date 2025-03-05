@@ -12,6 +12,9 @@ from unittest import mock
 from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
 
 """
 test_lambda_2_TDD.py
@@ -331,8 +334,61 @@ class TestCreateDesignTables:
         # assert - df_dim_design type
         assert isinstance(df_dim_design, pd.DataFrame)
         
-        # assert_unique_designs_exist     
-        #assert all(expected_design_id_values == df_dim_design['design_id'])
+        # assert_correct_data
+        ## index
+        assert all(expected_design_id_values == df_dim_design.index.values)
+        ## values
         assert all(expected_design_name_values == df_dim_design['design_name'])
         assert all(expected_file_location_values == df_dim_design["file_location"])
         assert all(expected_file_name_values == df_dim_design["file_name"])
+        
+        
+        # # assert - response good
+        
+        # # assert - design parquet file exists
+        response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        #actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        #assert set(actual_s3_file_key_list) == set(return_s3_key(table_name) for table_name in [df_dim_design_name])
+                
+        # assert TODO - parquet has right columns
+        #pandas_dataframe = pq.ParquetDataset('s3://' + hardcoded_variables["processing_bucket_name"] + '/', filesystem=s3_client).read_pandas().to_pandas()
+        #print(type(pandas_dataframe))
+        
+        # assert TODO - parquet table has at least one matching data
+        # assert TODO - that the file is parquet
+        
+
+"""
+
+pip install pyarrow
+
+
+import pandas as pd
+
+# Create a sample DataFrame
+df = pd.DataFrame({
+    'Name': ['Alice', 'Bob', 'Charlie'],
+    'Age': [25, 30, 35],
+    'Salary': [50000, 60000, 70000]
+})
+
+# Convert the DataFrame to an Arrow Table
+table = pa.Table.from_pandas(df)
+
+# Write the Arrow Table to a Parquet file
+pq.write_table(table, 'sample.parquet')
+
+
+
+# Read the Parquet file into an Arrow Table
+table = pq.read_table('sample.parquet')
+
+# Convert the Arrow Table to a Pandas DataFrame
+df = table.to_pandas()
+
+print(df)
+
+"""
+
+
+
