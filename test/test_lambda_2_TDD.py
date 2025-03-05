@@ -14,6 +14,7 @@ from src.util import json_to_pg8000_output, return_datetime_string, simple_read_
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+import s3fs
 
 
 """
@@ -323,14 +324,15 @@ class TestCreateDesignTables:
         expected_design_name_values = ["Wooden", "Bronze", "Bronze", "Soft", "Plastic", "Soft", "Cotton", "Granite", "Frozen", "Steel"]
         expected_file_location_values = ["\/usr", "\/private", "\/lost+found", "\/System", "\/usr\/ports", "\/usr\/share", "\/etc\/periodic", "\/usr\/X11R6", "\/Users", "\/etc\/periodic"]
         expected_file_name_values = ["wooden-20220717-npgz.json", "bronze-20221024-4dds.json", "bronze-20230102-r904.json", "soft-20211001-cjaz.json", "plastic-20221206-bw3l.json", "soft-20220201-hzz1.json", "cotton-20220527-vn4b.json", "granite-20220125-ifwa.json", "frozen-20221021-bjqs.json", "steel-20210725-fcxq.json"]
-        print(" ------- df_totesys_design ------- ")
-        #print(df_totesys_sales_order[:hardcode_limit])
+        #print(" ------- df_totesys_design ------- ")
+        ##print(df_totesys_sales_order[:hardcode_limit])
         # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
         
         # act
         df_dim_design = _return_df_dim_design(df_totesys_design[:hardcode_limit])
-        #response     = populate_parquet_file(s3_client, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
-        
+        response      = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
+        #print("---------------------------------------")
+        #print(response)
         # assert - df_dim_design type
         assert isinstance(df_dim_design, pd.DataFrame)
         
@@ -344,15 +346,33 @@ class TestCreateDesignTables:
         
         
         # # assert - response good
+        assert response["message"] == {"message": "Success"}
         
-        # # assert - design parquet file exists
+        
+        # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        #actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        #assert set(actual_s3_file_key_list) == set(return_s3_key(table_name) for table_name in [df_dim_design_name])
+        actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
+        
+        # assert - can be read as dataframe (and is saved as parquet)
+        s3_fs = s3fs.S3FileSystem()
+        pandas_dataframe = pq.ParquetDataset(
+            's3://' + hardcoded_variables["processing_bucket_name"] + '/' + return_s3_key(df_dim_design_name, datetime_string), # insert filename
+            filesystem=s3_fs
+        ).read_pandas().to_pandas()
+        #print(type(pandas_dataframe))
+        
+        assert isinstance(pandas_dataframe, pd.DataFrame)
+        
+         
+        
+        
+        
+        
                 
         # assert TODO - parquet has right columns
-        #pandas_dataframe = pq.ParquetDataset('s3://' + hardcoded_variables["processing_bucket_name"] + '/', filesystem=s3_client).read_pandas().to_pandas()
-        #print(type(pandas_dataframe))
+        
+
         
         # assert TODO - parquet table has at least one matching data
         # assert TODO - that the file is parquet

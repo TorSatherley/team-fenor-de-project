@@ -3,8 +3,11 @@ import io
 import pandas as pd
 import json
 import datetime
-from src.util import return_week
+from src.util import return_week, return_s3_key
 from copy import copy
+import pyarrow as pa
+import pyarrow.parquet as pq
+from botocore.exceptions import ClientError
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -79,4 +82,20 @@ def _return_df_dim_design(df_totesys_design):
     return df_reduced
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
-    pass
+    
+    try:
+        key = return_s3_key(table_name, datetime_string)
+
+        table = pa.Table.from_pandas(df_file)
+        
+        writer = pa.BufferOutputStream()
+        pq.write_table(table, writer)
+        body = bytes(writer.getvalue())
+
+        response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
+    
+        return response
+    except ClientError as e:
+        return {"message": "Error", "details": str(e)}
+    
+    
