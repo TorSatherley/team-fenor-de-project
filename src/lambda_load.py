@@ -49,9 +49,6 @@ def lambda_handler(event, contenxt):
         upload_dfs_to_warehouse(conn, dfs)
         close_db(conn)
         return {"message": "Successfully uploaded to database"}
-    except:  # Choose exceptions to handle
-        return {"message": "Failure"}
+    except Exception as e:  
+        return {"message": f"Failure: {e}"}
 
-
-#     print({"log": "Files Loaded successfully - {datetime.now()}"})
-#     return {"message": f"Data is Loaded"}

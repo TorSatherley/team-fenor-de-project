@@ -144,10 +144,8 @@ class TestLambdaHandler:
         context = None
         mock_convert_parquets.return_value = list_of_dataframes
         mock_create_conn.return_value = 'conn'
-
         # ACT:
         result = lambda_handler(event, context)
-
         # ASSERT:
         mock_convert_parquets.assert_called_once_with(
             mock_s3_client, "data/20250305_092045/", mock_bucket_name
@@ -157,6 +155,16 @@ class TestLambdaHandler:
         mock_close_db.assert_called_once_with('conn')
         assert result == {"message": "Successfully uploaded to database"}
 
-    #def
+    def test_handler_handles_event_errors_effectively(self):
+        event = {}
+        context = None
+        result = lambda_handler(event, context)
+        assert 'Failure' in result['message']
+
+    def test_handler_handles_client_errors_effectivley(self):
+        event = {"s3_file_path": "data/20250305_092045/"}
+        context = None
+        result = lambda_handler(event, context)
+        assert 'Failure' in result['message']
 
 
