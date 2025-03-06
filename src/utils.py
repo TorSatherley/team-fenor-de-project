@@ -6,6 +6,7 @@ import pandas as pd
 from pg8000.native import Connection
 from pg8000.exceptions import DatabaseError
 
+
 def get_secret(sm_client, secret_name):
     """Retrieves database secrets from AWS Secrets Manager."""
     if not secret_name:
@@ -15,7 +16,14 @@ def get_secret(sm_client, secret_name):
         secret = get_secret_value_response["SecretString"]
         secrets = json.loads(secret)
         return secrets
-    except (ClientError, NoCredentialsError, ValueError, json.JSONDecodeError, KeyError, Exception) as e:
+    except (
+        ClientError,
+        NoCredentialsError,
+        ValueError,
+        json.JSONDecodeError,
+        KeyError,
+        Exception,
+    ) as e:
         print(f"Secret retrieval error: {e}")
         raise e
 
@@ -94,7 +102,6 @@ def log_file(s3_client, bucket_name, keys):
     except (ClientError, NoCredentialsError, Exception) as e:
         print(f"Error logging files to S3: {e}")
         return None
-
 
 
 def json_to_pg8000_output(filepath, include_cols_in_output=True):
