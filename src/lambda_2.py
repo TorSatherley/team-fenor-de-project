@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from botocore.exceptions import ClientError
 from io import BytesIO
+from pprint import pprint
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -82,11 +83,11 @@ def _return_df_dim_design(df_totesys_design):
     
     return df_reduced
 
-def _return_df_dim_location(df_totesys_location):
+def _return_df_dim_location(df_totesys_address):
 
     columns = ['address_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
-    df_design_copy = copy(df_totesys_location)
-    df_reduced = df_design_copy.loc[:,columns]
+    df_location_copy = copy(df_totesys_address)
+    df_reduced = df_location_copy.loc[:,columns]
     df_reduced.set_index("address_id", inplace=True)
     
     return df_reduced
@@ -106,4 +107,35 @@ def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucke
     #except ClientError as e:
     #    return {"message": "Error", "details": str(e)}
     
+def _return_df_dim_staff(df_totesys_staff, df_totesys_department):
+    # Ensure the required columns exist in both DataFrames
+    expected_staff_columns = ['staff_id', 'first_name', 'last_name', 'department_id', 'email_address']
+    expected_department_columns = ['department_id', 'department_name', 'location']
+
+    # Select and validate staff columns
+    df_staff_copy = copy(df_totesys_staff)
+    df_staff_reduced = df_staff_copy.loc[:,expected_staff_columns]
+
+    # Select and validate department columns
+    df_department_copy = copy(df_totesys_department)
+    df_department_reduced = df_department_copy.loc[:,expected_department_columns]
+
+    # Merge staff with department data
+    df_merged = df_staff_reduced.merge(df_department_reduced, on="department_id")
+
+    # Select required columns, ensuring they exist in the merged DataFrame
+    selected_columns = ["staff_id", 'first_name', 'last_name', 'department_name', 'location', 'email_address']
+    df_final = df_merged.loc[:,selected_columns]
+    df_final.set_index("staff_id", inplace=True)
+
+    return df_final
+
+def _return_df_dim_currency(df_totesys_currency):
+    columns = ["currency_id", "currency_code", "currency_name"]
+    currency_name_values = {"GBP": "Great British Pounds","USD": "United States Dollars","EUR": "Euro"}
+    df_currency_copy = copy(df_totesys_currency)
+    df_currency_copy["currency_name"] = df_currency_copy["currency_code"].map(currency_name_values)
+    df_reduced = df_currency_copy.loc[:,columns]
+    df_reduced.set_index("currency_id", inplace=True)
     
+    return df_reduced
