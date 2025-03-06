@@ -309,7 +309,7 @@ class TestCreateDateTable:
         print("")
         
 class TestCreateDesignTables:
-    @pytest.mark.skip
+    
     def test_3a_dim_design_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key = return_s3_key("design", datetime_string)
@@ -416,7 +416,7 @@ class TestCreateCounterpartyTables:
         df_dim_address          = read_s3_table_json(s3_client, inj_file_key_address,       hardcoded_variables["ingestion_bucket_name"])
         
         
-        df_dim_design_name = "dim_counterparty"
+        df_dim_counterparty_name = "dim_counterparty"
         hardcode_limit = 6 # this limits the size of the imported sales table so that a human can hardcode the expected values
         
         expected_counterparty_id_values = [1, 2, 3, 4, 5, 6]
@@ -432,7 +432,7 @@ class TestCreateCounterpartyTables:
         
         # act
         df_dim_counterparty = _return_df_dim_counterparty(df_totesys_counterparty[:hardcode_limit], df_dim_address)
-        response            = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_counterparty, hardcoded_variables["processing_bucket_name"])
+        response            = populate_parquet_file(s3_client, datetime_string, df_dim_counterparty_name, df_dim_counterparty, hardcoded_variables["processing_bucket_name"])
 
         # assert - df_dim_design type
         assert isinstance(df_dim_counterparty, pd.DataFrame)
@@ -460,10 +460,10 @@ class TestCreateCounterpartyTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_location_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_counterparty_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_location_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_counterparty_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_dim_design type
@@ -471,7 +471,7 @@ class TestCreateCounterpartyTables:
 
         #assert - correct data in s3 bucket  
         ## index 
-        assert all(expected_adress_id_values == s3_file.index.values)
+        assert all(expected_counterparty_id_values == s3_file.index.values)
 
         ## values
                 

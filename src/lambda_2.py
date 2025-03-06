@@ -103,7 +103,7 @@ def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucke
         buffer.seek(0)  # Reset buffer positio
         response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
 
-      return response
+        return response
     except ClientError as e:
         return {"message": "Error", "details": str(e)}
     
