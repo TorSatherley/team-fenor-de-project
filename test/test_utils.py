@@ -37,19 +37,13 @@ def mock_totesys_connection(mock_conn):
 
 
 @pytest.fixture(scope="function")
-def s3(aws_credentials):
-    with mock_aws():
-        yield boto3.client("s3", region_name="eu-west-2")
-
-
-@pytest.fixture(scope="function")
-def mock_empty_s3(aws_credentials):
+def s3():
     with mock_aws():
         yield boto3.client("s3", region_name="eu-west-2")
 
 
 @pytest.fixture
-def mock_secret(mock_empty_s3):
+def mock_secret():
     return {
         "dbname": "test_db",
         "username": "test_user",
