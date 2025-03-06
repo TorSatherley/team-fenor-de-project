@@ -13,12 +13,11 @@ from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, VARCHAR, inspect
 from src.lambda_load import (
     lambda_handler,
+    convert_parquets_to_dataframes,
     upload_to_warehouse
 )
 
-
 LATEST_FOLDER="data/20250305_092045/"
-
 
 # https://www.atlassian.com/data/notebook/how-to-execute-raw-sql-in-sqlalchemy
 # FIXTURE FOR TEST DATABASE - Lives only for the scope of the function
@@ -107,6 +106,11 @@ def mock_populated_s3_client(mock_s3):
 
     yield mock_s3
 
+
+#################################
+#### Changed this to output a dictionary similar to convert_parquets_to_dataframes()
+#################################
+
 @pytest.fixture(scope="function")
 def list_of_dataframes():
     """returns the correct dataframes for the two parquet files used for testing"""
@@ -132,120 +136,63 @@ def list_of_s3_files(mock_populated_s3_client):
     for file in formatted_response:
         name = os.path.basename(file)
         list_of_filenames.append(name)
-
     return list_of_filenames
 
 
+##############################
+#### These are for a previous list output
+#### had to refactor the convert_parquets_to_dataframes() to output a dictionary
+#### These therefore need tweaking to work
+#### Dictionary output:
+####         { dim_currency: <dim_currency_dataframe>, dim_staff: <dim_staff_dataframe> }...
 
-# class TestConvertParquetsToDataframes:
+class TestConvertParquetsToDataframes:
+    def test_function_returns_dataframe_list_for_s3_filepath(
+        self, mock_populated_s3_client, list_of_dataframes
+    ):
+        latest_folder_s3_filepath = "data/20250305_092045/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
+        pd.testing.assert_frame_equal(result[0], list_of_dataframes[0])
+        pd.testing.assert_frame_equal(result[1], list_of_dataframes[1])
 
-#     def test_function_returns_dataframe_list_for_s3_filepath(
-#         self, mock_populated_s3_client, list_of_dataframes
-#     ):
-#         latest_folder_s3_filepath = "data/20250305_093915/"
-#         result = convert_parquets_to_dataframes(
-#             mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
-#         )
-#         pd.testing.assert_frame_equal(result[0], list_of_dataframes[0])
-#         pd.testing.assert_frame_equal(result[1], list_of_dataframes[1])
+    def test_function_isnt_collecting_items_from_any_other_folders(
+        self, mock_populated_s3_client
+    ):
+        latest_folder_s3_filepath = "data/20250305_092045/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
+        assert len(result) == 2
 
-#     def test_function_isnt_collecting_items_from_any_other_folders(
-#         self, mock_populated_s3_client
-#     ):
-#         latest_folder_s3_filepath = "data/20250305_092045/"
-#         result = convert_parquets_to_dataframes(
-#             mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
-#         )
-#         assert len(result) == 2
-
-#     def test_function_handles_exceptions_suitably(self, mock_populated_s3_client):
-#         latest_folder_s3_filepath = "data/invalidpath/20250305_092045/"
-#         result = convert_parquets_to_dataframes(
-#             mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
-#         )
-#         assert "Error:" in result["message"]
+    def test_function_handles_exceptions_suitably(self, mock_populated_s3_client):
+        latest_folder_s3_filepath = "data/invalidpath/20250305_092045/"
+        result = convert_parquets_to_dataframes(
+            mock_populated_s3_client, latest_folder_s3_filepath, "test_bucket"
+        )
+        assert "Error:" in result["message"]
 
 
     
-
+##########################
+### TEST DB - uploads with upload_to_warehouse function to test_db
+##########################
 class TestUploadDfToWarehouse:
     def test_upload_to_df_warehouse_uploads_to_mock_data_warehouse(self, postgres_test_db, list_of_dataframes):
-
-
-        dfs = list_of_dataframes
-        print(dfs)
-
-        # with engine.connect() as conn:
-        #     for file in s3_files:
-        #             for key, value in list_of_dataframes.items():
-        #                 if key in file:
-        #                     print(file, key)
-        #                     upload = value.to_sql(key, engine, if_exists='append', index=False)
-
         engine = postgres_test_db
-        print(engine)
+        dfs = list_of_dataframes
+
         with engine.connect() as conn:
-            result = upload_to_warehouse()
-            print(result)
-
+            result = upload_to_warehouse(engine)
+   
             dim_currency_data = conn.execute(text('SELECT * FROM dim_currency LIMIT 1'))
-            dim_rows = [row for row in dim_currency_data]
-            print("DIM ROWS", dim_rows)
-
-            # dim_staff_data = conn.execute(text('SELECT * FROM dim_staff LIMIT 1'))
-            # dim_rows = [row for row in dim_staff_data]
-            # assert dim_rows[0] == (1, 'GBP', 'British Pound Sterling')
-
-        # filepaths = [file['Key'] for file in s3_latest['Contents']]
-
-        # for filepath in filepaths: 
-        #     print(pd.read_parquet(filepath))
-
-
-        # for file in list_of_s3_files:
-        #     # print(file)
-        #     with engine.connect() as conn:
-        #         query_result = conn.execute(text(f'SELECT * FROM {file} LIMIT 10'))
-        #         data = [row for row in query_result]
-        #         print(f"{file}:", data)
-        # assert False
-
-        # # DB upload
-        # engine = postgres_test_db
-        # # inspector = inspect(engine)
-        # # result = inspector.get_columns('dim_counterparty')
-        # # columns = [column['name'] for column in result]
-        # # print(columns)
-
-        #     upload_dfs_to_warehouse()
-            
-        #     dim_counterparty = conn.execute(text("SELECT * FROM dim_counterparty"))
-        #     dim_counterparty_data = [row for row in dim_counterparty]
-
-        #     # print(dim_counterparty_data)
-        #     assert False
-
-        
+            dim_currency_rows = [row for row in dim_currency_data]
+            assert dim_currency_rows[0] == (1, 'GBP', 'British Pound Sterling')
 
 
 
 
-    # test working function returns success message
-    # test that tables have been updated
-
-    # ARRANGE
-    # spin up a local version of a database (fixture)
-    # create a test dataframe list (fixture)
-    # mock conn = MagicMock() (fixture)
-    # create a mocked SQLchemy engine
-    # make connection to test database
-
-    # ACT
-    # call upload_dfs_to_warehouse with mocked / patched connection and test dataframe list
-
-    # ASSERT
-    # assert table have been updated with the expected data from dfs
-    # assert success message returned
 
 
 # class TestLambdaHandler:
