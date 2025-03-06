@@ -59,4 +59,5 @@ def return_week(date_isoformat_str):
     weekday_name = weekday_name_dict[weekday_num]
     return weekday_num, weekday_name    
 
-    
+def return_s3_key__injection_bucket(table_name):
+    pass

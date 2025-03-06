@@ -9,7 +9,7 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 import pyarrow as pa
@@ -324,15 +324,11 @@ class TestCreateDesignTables:
         expected_design_name_values = ["Wooden", "Bronze", "Bronze", "Soft", "Plastic", "Soft", "Cotton", "Granite", "Frozen", "Steel"]
         expected_file_location_values = ["\/usr", "\/private", "\/lost+found", "\/System", "\/usr\/ports", "\/usr\/share", "\/etc\/periodic", "\/usr\/X11R6", "\/Users", "\/etc\/periodic"]
         expected_file_name_values = ["wooden-20220717-npgz.json", "bronze-20221024-4dds.json", "bronze-20230102-r904.json", "soft-20211001-cjaz.json", "plastic-20221206-bw3l.json", "soft-20220201-hzz1.json", "cotton-20220527-vn4b.json", "granite-20220125-ifwa.json", "frozen-20221021-bjqs.json", "steel-20210725-fcxq.json"]
-        #print(" ------- df_totesys_design ------- ")
-        ##print(df_totesys_sales_order[:hardcode_limit])
-        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
         
         # act
         df_dim_design = _return_df_dim_design(df_totesys_design[:hardcode_limit])
         response      = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
-        #print("---------------------------------------")
-        #print(response)
+
         # assert - df_dim_design type
         assert isinstance(df_dim_design, pd.DataFrame)
         
@@ -346,8 +342,8 @@ class TestCreateDesignTables:
         
         
         # # assert - response good
-        #assert response['ResponseMetadata']['HTTPStatusCode'] == 200
-        
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx")
@@ -361,30 +357,18 @@ class TestCreateDesignTables:
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
-        print(type(s3_file))
-        
-        #s3_fs = s3fs.S3FileSystem()
-        #pandas_dataframe = pq.ParquetDataset(
-        #    's3://' + hardcoded_variables["processing_bucket_name"] + '/' + return_s3_key(df_dim_design_name, datetime_string), # insert filename
-        #    filesystem=s3_fs
-        #).read_pandas().to_pandas()
-        ##print(type(pandas_dataframe))
-        
+        # assert - df_dim_design type
         assert isinstance(s3_file, pd.DataFrame)
-        
+
+        #assert - correct data in s3 bucket  
+        ## index 
+        assert all(expected_design_id_values == s3_file.index.values)
+
+        ## values
+        assert all(expected_design_name_values == s3_file['design_name'])
+        assert all(expected_file_location_values == s3_file["file_location"])
+        assert all(expected_file_name_values == s3_file["file_name"])
          
-        
-  
-
-        
-        
-                
-        # assert TODO - parquet has right columns
-        
-
-        
-        # assert TODO - parquet table has at least one matching data
-        # assert TODO - that the file is parquet
         
 
 """
@@ -419,5 +403,45 @@ print(df)
 
 """
 
-
+class TestCreateLocationTables:
+    @pytest.mark.skip
+    def test_4a_dim_location_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        inj_file_key = return_s3_key("location", datetime_string)
+        df_totesys_location = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
+        df_dim_location_name = "dim_location"
+        hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        expected_adress_id = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        expected_address_line_1_value = ["6826 Herzog Via", "179 Alexie Cliffs", "148 Sincere Fort", "6102 Rogahn Skyway", "34177 Upton Track", "846 Kailey Island", "75653 Ernestine Ways", "0579 Durgan Common", "644 Edward Garden", "49967 Kaylah Flat"]
+        expected_address_line_2_value = [None,None,None,None,None,None,None,None,None,"Tremaine Circles"]
+        expected_distric_value = ["Avon", None, None, "Bedfordshire", None, None, "Buckinghamshire", None, "Borders", "Bedfordshire"]
+        expected_city = ["New Patienceburgh", "Aliso Viejo", "Lake Charles", "Olsonside", "Fort Shadburgh", "Kendraburgh", "North Deshaun", "Suffolk", "New Tyra", "Beaulahcester"]
+        expected_postal_code_value = ["28441", "99305-7380", "89360", "47518", "55993-8850", "08841", "02813", "56693-0660", "30825-5672", "89470"]
+        expected_country_value = ["Turkey", "San Marino", "Samoa", "Republic of Korea", "Bosnia and Herzegovina", "Zimbabwe", "Faroe Islands", "United Kingdom", "Australia", "Democratic People's Republic of Korea"]
+        expected_phone_value = ["1803 637401", "9621 880720", "0730 783349", "1239 706295", "0081 009772", "0447 798320", "1373 796260", "8935 157571", "0768 748652", "4949 998070"]
+        #print(" ------- df_totesys_location ------- ")
+        ##print(df_totesys_sales_order[:hardcode_limit])
+        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
+        
+        # act
+        df_dim_location = _return_df_dim_location(df_totesys_location[:hardcode_limit])
+        response      = populate_parquet_file(s3_client, datetime_string, df_dim_location_name, df_dim_location, hardcoded_variables["processing_bucket_name"])
+        #print("---------------------------------------")
+        #print(response)
+        # assert - df_dim_location type
+        assert isinstance(df_dim_location, pd.DataFrame)
+        
+        # assert_correct_data
+        ## index
+        assert all(expected_adress_id == df_dim_location.index.values)
+        ## values
+        assert all(expected_address_line_1_value == df_dim_location['address_line_1'])
+        assert all(expected_address_line_2_value == df_dim_location["address_line_2"])
+        assert all(expected_distric_value == df_dim_location["district"])
+        assert all(expected_city == df_dim_location["city"])
+        assert all(expected_postal_code_value == df_dim_location["postal_code"])
+        assert all(expected_country_value == df_dim_location["country"])
+        assert all(expected_phone_value == df_dim_location["phone"])
+        
 
