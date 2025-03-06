@@ -9,7 +9,7 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 import pyarrow as pa
@@ -126,7 +126,7 @@ def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variab
     #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
     # act
     datetime_str = return_datetime_string()
-    jsonl_list = ["design", "address", "staff", "department", "currency"]
+    jsonl_list = ["design", "address", "staff", "department", "currency", "sales_order"]
     for jsonl_file in jsonl_list:
         key = return_s3_key(jsonl_file, datetime_str)
         with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
@@ -593,3 +593,92 @@ class TestCreatescurrencyTables:
         ## values
         assert all(expected_currency_code == s3_file['currency_code'])
         assert all(expected_currency_name == s3_file["currency_name"])
+
+class TestCreatessalesOrderTables:
+    def test_7a_fact_sales_order_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        inj_file_key_staff = return_s3_key("sales_order", datetime_string)
+        df_totesys_sales_order = read_s3_table_json(s3_client, inj_file_key_staff, hardcoded_variables["ingestion_bucket_name"])
+        df_fact_sales_order_name = "fact_sales_order"
+        hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        expected_fact_sales_order_id = [1,2,3,4,5,6,7,8,9,10]
+        expected_sales_order_id = [2, 3, 4, 5, 6, 7, 8, 10, 11, 12]
+        expected_created_at = ["2022-11-03", "2022-11-03", "2022-11-03", "2022-11-03", "2022-11-04", "2022-11-04", "2022-11-04", "2022-11-07", "2022-11-07", "2022-11-09",]
+        expected_created_time = ["14:20:52.186", "14:20:52.188", "14:20:52.188", "14:20:52.186", "11:37:10.341", "12:57:09.926", "13:45:10.306", "09:07:10.485", "15:53:10.153", "10:20:09.912"]
+        expected_last_update = ["2022-11-03", "2022-11-03", "2022-11-03", "2022-11-03", "2022-11-04", "2022-11-04", "2022-11-04", "2022-11-07", "2022-11-07", "2022-11-09"]
+        expected_last_update_time = ["14:20:52.186", "14:20:52.188", "14:20:52.188", "14:20:52.186", "11:37:10.341", "12:57:09.926", "13:45:10.306", "09:07:10.485", "15:53:10.153", "10:20:09.912"]
+        expected_staff_id = [19, 10, 10, 18, 13, 11, 11, 16, 14, 8]
+        expected_couterparty_id = [8, 4, 16, 4, 18, 10, 20, 12, 12, 12]
+        expected_units_sold = [42972, 65839, 32069, 49659, 83908, 65453, 20381, 61620, 35227, 7693]
+        expected_unit_price = [3.94, 2.91, 3.89, 2.41, 3.99, 2.89, 2.22, 3.86, 3.41, 3.88]
+        expected_currency_id = [2, 3, 2, 3, 3, 2, 2, 2, 2, 2]
+        expected_design_id = [3, 4, 4, 7, 3, 7, 2, 3, 9, 2]
+        expected_agreed_delivery_date = ["2022-11-07", "2022-11-06", "2022-11-05", "2022-11-05", "2022-11-04", "2022-11-04", "2022-11-06", "2022-11-09", "2022-11-08", "2022-11-13"]
+        expected_agreed_payment_date = ["2022-11-08", "2022-11-07", "2022-11-07", "2022-11-08", "2022-11-07", "2022-11-09", "2022-11-07", "2022-11-10", "2022-11-13", "2022-11-11"]
+        expected_agreed_delivery_location_id = [8, 19, 15, 25, 17, 28, 8, 20, 13, 15]
+
+
+        # act
+        df_fact_sales_order = _return_df_fact_sales_order(df_totesys_sales_order[:hardcode_limit])
+        response      = populate_parquet_file(s3_client, datetime_string, df_fact_sales_order_name, df_fact_sales_order, hardcoded_variables["processing_bucket_name"])
+
+        # assert - df_fact_staff type
+        assert isinstance(df_fact_sales_order, pd.DataFrame)
+        print(df_fact_sales_order)
+        # assert_correct_data
+        ## index
+        assert all(expected_fact_sales_order_id == df_fact_sales_order.index.values)
+        ## values
+        assert all(expected_sales_order_id == df_fact_sales_order['sales_order_id'])
+        assert all(expected_created_at == df_fact_sales_order['created_date'])
+        assert all(expected_created_time == df_fact_sales_order["created_time"])
+        assert all(expected_last_update == df_fact_sales_order["last_updated_date"])
+        assert all(expected_last_update_time == df_fact_sales_order["last_updated_time"])
+        assert all(expected_staff_id == df_fact_sales_order["sales_staff_id"])
+        assert all(expected_couterparty_id == df_fact_sales_order["counterparty_id"])
+        assert all(expected_units_sold == df_fact_sales_order["units_sold"])
+        assert all(expected_unit_price == df_fact_sales_order["unit_price"])
+        assert all(expected_currency_id == df_fact_sales_order["currency_id"])
+        assert all(expected_design_id == df_fact_sales_order["design_id"])
+        assert all(expected_agreed_delivery_date == df_fact_sales_order["agreed_delivery_date"])
+        assert all(expected_agreed_payment_date == df_fact_sales_order["agreed_payment_date"])
+        assert all(expected_agreed_delivery_location_id == df_fact_sales_order["agreed_delivery_location_id"])
+        
+
+        # # assert - response good
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+        # assert - design parquet file exists
+        response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_fact_sales_order_name])
+        
+        # assert - can be read as dataframe (and is saved as parquet)
+        import io
+
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_fact_sales_order_name, datetime_string))
+        s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
+        
+        # assert - df_fact_design type
+        assert isinstance(s3_file, pd.DataFrame)
+
+        #assert - correct data in s3 bucket  
+        ## index
+        ## index
+        assert all(expected_fact_sales_order_id == s3_file.index.values)
+        ## values
+        assert all(expected_created_at == s3_file['created_date'])
+        assert all(expected_created_time == s3_file["created_time"])
+        assert all(expected_last_update == s3_file["last_updated_date"])
+        assert all(expected_last_update_time == s3_file["last_updated_time"])
+        assert all(expected_staff_id == s3_file["sales_staff_id"])
+        assert all(expected_couterparty_id == s3_file["counterparty_id"])
+        assert all(expected_units_sold == s3_file["units_sold"])
+        assert all(expected_unit_price == s3_file["unit_price"])
+        assert all(expected_currency_id == s3_file["currency_id"])
+        assert all(expected_design_id == s3_file["design_id"])
+        assert all(expected_agreed_delivery_date == s3_file["agreed_delivery_date"])
+        assert all(expected_agreed_payment_date == s3_file["agreed_payment_date"])
+        assert all(expected_agreed_delivery_location_id == s3_file["agreed_delivery_location_id"])

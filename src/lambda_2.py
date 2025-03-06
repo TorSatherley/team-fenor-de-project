@@ -139,3 +139,24 @@ def _return_df_dim_currency(df_totesys_currency):
     df_reduced.set_index("currency_id", inplace=True)
     
     return df_reduced
+
+def _return_df_fact_sales_order(df_totesys_sales_order):
+    columns = ["sales_record_id", "sales_order_id", "created_date", "created_time", "last_updated_date", "last_updated_time", "sales_staff_id", "counterparty_id", "units_sold", "unit_price", "currency_id", "design_id", "agreed_payment_date", "agreed_delivery_date", "agreed_delivery_location_id"]
+    df_sales_order_copy = copy(df_totesys_sales_order) 
+
+    df_sales_order_copy['created_at'] = pd.to_datetime(df_sales_order_copy['created_at'])
+    df_sales_order_copy['last_updated'] = pd.to_datetime(df_sales_order_copy['last_updated'])
+    df_sales_order_copy['sales_record_id'] = range(1, len(df_sales_order_copy)+1)
+
+    df_sales_order_copy['created_date'] = df_sales_order_copy["created_at"].dt.date.astype(str)
+    df_sales_order_copy['created_time'] = df_sales_order_copy["created_at"].dt.strftime('%H:%M:%S.%f').str[:-3]
+
+    df_sales_order_copy['last_updated_date'] = df_sales_order_copy["last_updated"].dt.date.astype(str)
+    df_sales_order_copy['last_updated_time'] = df_sales_order_copy["last_updated"].dt.strftime('%H:%M:%S.%f').str[:-3]
+    df_sales_order_copy['sales_staff_id'] = df_sales_order_copy["staff_id"]
+
+    df_reduced = df_sales_order_copy.loc[:,columns]
+    df_reduced.set_index("sales_record_id", inplace=True)
+
+    return df_reduced
+    

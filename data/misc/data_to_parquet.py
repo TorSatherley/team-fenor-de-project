@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 
-jsonl_file = 'staff_top_10_rows'
+jsonl_file = 'counterparty'
 
 
-with open(f'data/misc/{jsonl_file}.jsonl') as fin:
+with open(f'data/json_lines_s3_format/{jsonl_file}.jsonl') as fin:
     df = pd.json_normalize(pd.DataFrame(fin.read().splitlines())[0].apply(eval))
 
 
