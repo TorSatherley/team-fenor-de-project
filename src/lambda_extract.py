@@ -29,7 +29,7 @@ def lambda_handler(event, context):
         context: Lambda runtime context
     Returns:
         Dict containing status message
-    """
+    """ 
     try:
         db_credentials = get_secret(sm_client, secret_name)
         conn = create_conn(db_credentials)
