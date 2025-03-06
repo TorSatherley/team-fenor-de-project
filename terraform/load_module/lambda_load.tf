@@ -8,6 +8,12 @@ resource "aws_lambda_function" "lambda_load_handler" {
   layers            = [aws_lambda_layer_version.lambda_load_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1"]
   filename         = data.archive_file.lambda_load_package.output_path
   source_code_hash = data.archive_file.lambda_load_package.output_base64sha256
+  environment {
+    variables = {
+      SECRET_NAME = "data-warehouse-credentials"
+      BUCKET_NAME = "totesys-processed-zone-fenor"
+    }
+  }
 }
 
 data "archive_file" "lambda_load_package" {
