@@ -1,8 +1,11 @@
 DROP DATABASE IF EXISTS fenor_data_warehouse;
 CREATE DATABASE fenor_data_warehouse;
 
-\echo '🎉 Initialised test database! 🎉'
+\c fenor_data_warehouse
 
+-- \echo '🎉 Initialised test database! 🎉'
+
+DROP TABLE IF EXISTS dim_date CASCADE;
 CREATE TABLE dim_date (
     date_id DATE PRIMARY KEY,
     year INT NOT NULL,
@@ -14,6 +17,7 @@ CREATE TABLE dim_date (
     quarter INT NOT NULL
 );
 
+DROP TABLE IF EXISTS dim_staff CASCADE;
 CREATE TABLE dim_staff (
     staff_id INT PRIMARY KEY,
     first_name VARCHAR NOT NULL,
@@ -23,6 +27,7 @@ CREATE TABLE dim_staff (
     email_address VARCHAR NOT NULL
 );
 
+DROP TABLE IF EXISTS dim_location CASCADE;
 CREATE TABLE dim_location (
     location_id INT PRIMARY KEY,
     address_line_1 VARCHAR NOT NULL,
@@ -34,12 +39,15 @@ CREATE TABLE dim_location (
     phone VARCHAR NOT NULL
 );
 
+
+DROP TABLE IF EXISTS dim_currency CASCADE;
 CREATE TABLE dim_currency (
     currency_id INT PRIMARY KEY,
     currency_code VARCHAR NOT NULL,
     currency_name VARCHAR NOT NULL
 );
 
+DROP TABLE IF EXISTS dim_design CASCADE;
 CREATE TABLE dim_design (
     design_id INT PRIMARY KEY,
     design_name VARCHAR NOT NULL,
@@ -47,6 +55,7 @@ CREATE TABLE dim_design (
     file_name VARCHAR NOT NULL
 );
 
+DROP TABLE IF EXISTS dim_counterparty CASCADE;
 CREATE TABLE dim_counterparty (
     counterparty_id INT PRIMARY KEY,
     counterparty_legal_name VARCHAR NOT NULL,
@@ -59,18 +68,8 @@ CREATE TABLE dim_counterparty (
     counterparty_legal_phone_number VARCHAR NOT NULL
 );
 
-CREATE TABLE dim_payment_type (
-    payment_type_id SERIAL PRIMARY KEY,
-    payment_type_name VARCHAR NOT NULL
-);
 
-CREATE TABLE dim_transaction (
-    transaction_id INT PRIMARY KEY,
-    transaction_type VARCHAR NOT NULL,
-    sales_order_id INT,
-    purchase_order_id INT
-);
-
+DROP TABLE IF EXISTS fact_sales_order CASCADE;
 CREATE TABLE fact_sales_order (
     sales_record_id SERIAL PRIMARY KEY,
     sales_order_id INT NOT NULL,
@@ -89,37 +88,53 @@ CREATE TABLE fact_sales_order (
     agreed_delivery_location_id INT NOT NULL REFERENCES dim_location(location_id)
 );
 
-CREATE TABLE fact_purchase_order (
-    purchase_record_id SERIAL PRIMARY KEY,
-    purchase_order_id INT NOT NULL,
-    created_date DATE NOT NULL REFERENCES dim_date(date_id),
-    created_time TIME NOT NULL,
-    last_updated_date DATE NOT NULL REFERENCES dim_date(date_id),
-    last_updated_time TIME NOT NULL,
-    staff_id INT NOT NULL REFERENCES dim_staff(staff_id),
-    counterparty_id INT NOT NULL REFERENCES dim_counterparty(counterparty_id),
-    item_code VARCHAR NOT NULL,
-    item_quantity INT NOT NULL,
-    item_unit_price NUMERIC NOT NULL,
-    currency_id INT NOT NULL REFERENCES dim_currency(currency_id),
-    agreed_delivery_date DATE NOT NULL REFERENCES dim_date(date_id),
-    agreed_payment_date DATE NOT NULL REFERENCES dim_date(date_id),
-    agreed_delivery_location_id INT NOT NULL REFERENCES dim_location(location_id)
-);
+-- DROP TABLE IF EXISTS fact_purchase_order CASCADE;
+-- DROP TABLE IF EXISTS dim_payment_type CASCADE;
+-- CREATE TABLE dim_payment_type (
+--     payment_type_id SERIAL PRIMARY KEY,
+--     payment_type_name VARCHAR NOT NULL
+-- );
 
-CREATE TABLE fact_payment (
-    payment_record_id SERIAL PRIMARY KEY,
-    payment_id INT NOT NULL,
-    created_date DATE NOT NULL REFERENCES dim_date(date_id),
-    created_time TIME NOT NULL,
-    last_updated_date DATE NOT NULL REFERENCES dim_date(date_id),
-    last_updated_time TIME NOT NULL,
-    transaction_id INT NOT NULL REFERENCES dim_transaction(transaction_id),
-    counterparty_id INT NOT NULL REFERENCES dim_counterparty(counterparty_id),
-    payment_amount NUMERIC NOT NULL,
-    currency_id INT NOT NULL REFERENCES dim_currency(currency_id),
-    payment_type_id INT NOT NULL REFERENCES dim_payment_type(payment_type_id),
-    paid BOOLEAN NOT NULL,
-    payment_date DATE NOT NULL REFERENCES dim_date(date_id)
-);
+-- DROP TABLE IF EXISTS dim_transaction CASCADE;
+-- CREATE TABLE dim_transaction (
+--     transaction_id INT PRIMARY KEY,
+--     transaction_type VARCHAR NOT NULL,
+--     sales_order_id INT,
+--     purchase_order_id INT
+-- );
+
+-- CREATE TABLE fact_purchase_order (
+--     purchase_record_id SERIAL PRIMARY KEY,
+--     purchase_order_id INT NOT NULL,
+--     created_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     created_time TIME NOT NULL,
+--     last_updated_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     last_updated_time TIME NOT NULL,
+--     staff_id INT NOT NULL REFERENCES dim_staff(staff_id),
+--     counterparty_id INT NOT NULL REFERENCES dim_counterparty(counterparty_id),
+--     item_code VARCHAR NOT NULL,
+--     item_quantity INT NOT NULL,
+--     item_unit_price NUMERIC NOT NULL,
+--     currency_id INT NOT NULL REFERENCES dim_currency(currency_id),
+--     agreed_delivery_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     agreed_payment_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     agreed_delivery_location_id INT NOT NULL REFERENCES dim_location(location_id)
+-- );
+
+-- DROP TABLE IF EXISTS fact_payment CASCADE;
+-- CREATE TABLE fact_payment (
+--     payment_record_id SERIAL PRIMARY KEY,
+--     payment_id INT NOT NULL,
+--     created_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     created_time TIME NOT NULL,
+--     last_updated_date DATE NOT NULL REFERENCES dim_date(date_id),
+--     last_updated_time TIME NOT NULL,
+--     transaction_id INT NOT NULL REFERENCES dim_transaction(transaction_id),
+--     counterparty_id INT NOT NULL REFERENCES dim_counterparty(counterparty_id),
+--     payment_amount NUMERIC NOT NULL,
+--     currency_id INT NOT NULL REFERENCES dim_currency(currency_id),
+--     payment_type_id INT NOT NULL REFERENCES dim_payment_type(payment_type_id),
+--     paid BOOLEAN NOT NULL,
+--     payment_date DATE NOT NULL REFERENCES dim_date(date_id)
+-- );
 

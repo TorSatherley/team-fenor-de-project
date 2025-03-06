@@ -13,10 +13,11 @@ from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, VARCHAR, inspect
 from src.lambda_load import (
     lambda_handler,
-    convert_parquets_to_dataframes,
-    upload_dfs_to_warehouse,
-    get_latest_folder
+    upload_to_warehouse
 )
+
+
+LATEST_FOLDER="data/20250305_092045/"
 
 
 # https://www.atlassian.com/data/notebook/how-to-execute-raw-sql-in-sqlalchemy
@@ -35,6 +36,13 @@ def postgres_test_db():
             Column('department_name', String),
             Column('location', String),
             Column('email_address', String),
+        )
+        
+        dim_currency = Table(
+            'dim_currency', metadata,
+            Column('currency_id', Integer, primary_key=True),
+            Column('currency_code', String),
+            Column('currency_name', String),
         )
 
         dim_counterparty = Table(
@@ -100,20 +108,33 @@ def mock_populated_s3_client(mock_s3):
     yield mock_s3
 
 @pytest.fixture(scope="function")
-def mock_s3_list(mock_populated_s3_client):
-    s3_folders = mock_populated_s3_client.list_objects_v2(Bucket='test_bucket', Prefix='data/', Delimiter="/")
-    folders_list = [folder['Prefix'] for folder in s3_folders['CommonPrefixes']]
-    return folders_list   
-
-
-@pytest.fixture(scope="function")
 def list_of_dataframes():
     """returns the correct dataframes for the two parquet files used for testing"""
-    parquet_file_1 = f"{os.getcwd()}/test/parquet/dim_counterparty.parquet"
-    parquet_file_2 = f"{os.getcwd()}/test/parquet/fact_sales_order.parquet"
-    df_1 = pd.read_parquet(parquet_file_1, engine="pyarrow")
-    df_2 = pd.read_parquet(parquet_file_2, engine="pyarrow")
-    return [df_1, df_2]
+    dfs = {}
+    prefix = './test/parquet/'
+    for filename in os.listdir(prefix):
+        basename = os.path.splitext(filename)[0]
+        full_path = prefix + filename
+        dfs[basename] = pd.read_parquet(full_path)
+    return dfs
+
+    # parquet_file_1 = f"{os.getcwd()}/test/parquet/dim_staff.parquet"
+    # parquet_file_2 = f"{os.getcwd()}/test/parquet/dim_currency.parquet"
+    # df_1 = pd.read_parquet(parquet_file_1, engine="pyarrow")
+    # df_2 = pd.read_parquet(parquet_file_2, engine="pyarrow")
+    # return [df_1, df_2]
+
+@pytest.fixture(scope="function")
+def list_of_s3_files(mock_populated_s3_client):
+    response = mock_populated_s3_client.list_objects_v2(Bucket='test_bucket', Prefix=LATEST_FOLDER)
+    formatted_response = [file['Key'] for file in response['Contents']]
+    list_of_filenames = []
+    for file in formatted_response:
+        name = os.path.basename(file)
+        list_of_filenames.append(name)
+
+    return list_of_filenames
+
 
 
 # class TestConvertParquetsToDataframes:
@@ -145,30 +166,64 @@ def list_of_dataframes():
 #         assert "Error:" in result["message"]
 
 
+    
+
 class TestUploadDfToWarehouse:
-    def test_upload_to_df_warehouse_uploads_to_mock_data_warehouse(self, mock_s3, mock_s3_list, postgres_test_db):
-        # grab latest folder
-        mock_s3_list.sort(reverse=True)
-        latest_folder = mock_s3_list[0]
-        print("Latest Folder:", latest_folder)
+    def test_upload_to_df_warehouse_uploads_to_mock_data_warehouse(self, postgres_test_db, list_of_dataframes):
 
-        # dim_counterparty, fact_sales_order
-        list_of_parquet_files = convert_parquets_to_dataframes(mock_s3, latest_folder, 'test_bucket')
 
-        # DB upload
+        dfs = list_of_dataframes
+        print(dfs)
+
+        # with engine.connect() as conn:
+        #     for file in s3_files:
+        #             for key, value in list_of_dataframes.items():
+        #                 if key in file:
+        #                     print(file, key)
+        #                     upload = value.to_sql(key, engine, if_exists='append', index=False)
+
         engine = postgres_test_db
-        inspector = inspect(engine)
-        result = inspector.get_columns('dim_counterparty')
-        columns = [column['name'] for column in result]
-        print(columns)
-
+        print(engine)
         with engine.connect() as conn:
-            dim_staff = conn.execute(text("SELECT * FROM dim_staff"))
-            dim_staff_data = [row for row in result]
-            print(dim_staff_data)
-            assert dim_staff
+            result = upload_to_warehouse()
+            print(result)
 
-        assert False
+            dim_currency_data = conn.execute(text('SELECT * FROM dim_currency LIMIT 1'))
+            dim_rows = [row for row in dim_currency_data]
+            print("DIM ROWS", dim_rows)
+
+            # dim_staff_data = conn.execute(text('SELECT * FROM dim_staff LIMIT 1'))
+            # dim_rows = [row for row in dim_staff_data]
+            # assert dim_rows[0] == (1, 'GBP', 'British Pound Sterling')
+
+        # filepaths = [file['Key'] for file in s3_latest['Contents']]
+
+        # for filepath in filepaths: 
+        #     print(pd.read_parquet(filepath))
+
+
+        # for file in list_of_s3_files:
+        #     # print(file)
+        #     with engine.connect() as conn:
+        #         query_result = conn.execute(text(f'SELECT * FROM {file} LIMIT 10'))
+        #         data = [row for row in query_result]
+        #         print(f"{file}:", data)
+        # assert False
+
+        # # DB upload
+        # engine = postgres_test_db
+        # # inspector = inspect(engine)
+        # # result = inspector.get_columns('dim_counterparty')
+        # # columns = [column['name'] for column in result]
+        # # print(columns)
+
+        #     upload_dfs_to_warehouse()
+            
+        #     dim_counterparty = conn.execute(text("SELECT * FROM dim_counterparty"))
+        #     dim_counterparty_data = [row for row in dim_counterparty]
+
+        #     # print(dim_counterparty_data)
+        #     assert False
 
         
 
