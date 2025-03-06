@@ -29,11 +29,9 @@ def lambda_handler(event, context):
         context: Lambda runtime context
     Returns:
         Dict containing status message
-    """
+    """ 
     try:
-        # Get secrets
         db_credentials = get_secret(sm_client, secret_name)
-        # Create connection
         conn = create_conn(db_credentials)
         keys = []
         # Get every table name in the database
@@ -50,11 +48,8 @@ def lambda_handler(event, context):
                 s3_client, bucket_name, table, rows, columns, date_and_time
             )
             keys.append(key)
-
         # Write log file to S3 bucket
         log_file(s3_client, bucket_name, keys)
-
-        # Close connection
         close_db(conn)
         print(
             f"Log: Batch extraction completed - {datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}"
