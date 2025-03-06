@@ -106,16 +106,34 @@ def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucke
     #except ClientError as e:
     #    return {"message": "Error", "details": str(e)}
     
-def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_location):
+def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_address):
     
     columns     = ["counterparty_id", "counterparty_legal_name", "counterparty_legal_address_line_1", "counterparty_legal_address_line_2", "counterparty_legal_district", "counterparty_legal_city", "counterparty_legal_postal_code", "counterparty_legal_country", "counterparty_legal_phone_number"]
-    df_count    = copy(df_totesys_counterparty)
-    df_loc      = copy(df_dim_location)
     
-    #df_count[["counterparty_id", "counterparty_legal_name"]]
     
-    df_merged = pd.merge(df_count, df_loc, left_on='legal_address_id', right_on='address_id')
+    df_count    = copy(df_totesys_counterparty[["counterparty_id", "counterparty_legal_name", "legal_address_id"]])
+    df_addy     = copy(df_dim_address[["address_id","address_line_1","address_line_2","district","city","postal_code","country","phone"]])
+    df_merged = pd.merge(df_count, df_addy, left_on='legal_address_id', right_on='address_id')
     
-    print(df_merged.info)
+    df_merged.rename(columns={"counterparty_id" : "counterparty_id", "counterparty_legal_name" : "counterparty_legal_name", "address_line_1" : "counterparty_legal_address_line_1", "address_line_2" : "counterparty_legal_address_line_2", "district" : "counterparty_legal_district", "city" : "counterparty_legal_city", "postal_code" : "counterparty_legal_postal_code", "country" : "counterparty_legal_country", "phone" : "counterparty_legal_phone_number"}, inplace=True)
+    df_merged.drop(["address_id"], axis=1, inplace=True)
+    
+    data_type_dict = {
+        "counterparty_id" : int, 
+        "counterparty_legal_name" : object, 
+        "counterparty_legal_address_line_1" : object, 
+        "counterparty_legal_address_line_2" : object, 
+        "counterparty_legal_district" : object, 
+        "counterparty_legal_city" : object, 
+        "counterparty_legal_postal_code" : object, 
+        "counterparty_legal_country" : object, 
+        "counterparty_legal_phone_number" : object}
+    
+    df_merged = df_merged.astype(data_type_dict)
+    df_merged.set_index("counterparty_id", inplace=True)
+    print("cccccccccccccccccccccccccccccc")
+    print(df_merged["counterparty_legal_name"])
+    
+    df_merged.to_csv("test.csv")
     
     return df_merged
