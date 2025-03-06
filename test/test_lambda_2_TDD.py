@@ -15,6 +15,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import s3fs
+import io
 
 
 """
@@ -126,7 +127,7 @@ def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variab
     #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
     # act
     datetime_str = return_datetime_string()
-    jsonl_list = ["design", "address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "sales_order", "staff", "transaction"    ]
+    jsonl_list = ["address", "counterparty"]
     for jsonl_file in jsonl_list:
         key = return_s3_key("design", datetime_str)
         with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
@@ -352,8 +353,6 @@ class TestCreateDesignTables:
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
@@ -501,8 +500,6 @@ class TestCreateDesignTables:
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         

@@ -106,6 +106,16 @@ def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucke
     #except ClientError as e:
     #    return {"message": "Error", "details": str(e)}
     
-def _return_df_dim_counterparty(df_totesys_location):
+def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_location):
     
-    return None
+    columns     = ["counterparty_id", "counterparty_legal_name", "counterparty_legal_address_line_1", "counterparty_legal_address_line_2", "counterparty_legal_district", "counterparty_legal_city", "counterparty_legal_postal_code", "counterparty_legal_country", "counterparty_legal_phone_number"]
+    df_count    = copy(df_totesys_counterparty)
+    df_loc      = copy(df_dim_location)
+    
+    #df_count[["counterparty_id", "counterparty_legal_name"]]
+    
+    df_merged = pd.merge(df_count, df_loc, left_on='legal_address_id', right_on='address_id')
+    
+    print(df_merged.info)
+    
+    return df_merged
