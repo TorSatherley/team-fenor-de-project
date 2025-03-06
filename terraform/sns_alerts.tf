@@ -9,7 +9,7 @@ resource "aws_sns_topic" "alarms_for_errors" {
 resource "aws_sns_topic_subscription" "lambda_extract_sns_email" {
   topic_arn = aws_sns_topic.alarms_for_errors.arn
   protocol  = "email"
-  endpoint  = "brendanc8450@gmail.com"
+  endpoint  = "vincent.toor@gmail.com"
   depends_on = [
     aws_sns_topic.alarms_for_errors
   ]
