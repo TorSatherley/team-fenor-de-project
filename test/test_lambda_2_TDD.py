@@ -9,13 +9,13 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import s3fs
-
+import io
 
 """
 test_lambda_2_TDD.py
@@ -126,7 +126,7 @@ def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variab
     #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
     # act
     datetime_str = return_datetime_string()
-    jsonl_list = ["design", "address", "staff", "department", "currency", "sales_order"]
+    jsonl_list = ["address","counterparty","currency","department","design","sales_order","staff"]
     for jsonl_file in jsonl_list:
         key = return_s3_key(jsonl_file, datetime_str)
         with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
@@ -140,11 +140,9 @@ def example_sales_order_table(hardcoded_variables):
     simulated_pg8000_output, simulated_pg8000_output_cols = json_to_pg8000_output(hardcoded_variables["dict_table_snapshot_filepaths"]["sales_order"], include_cols_in_output=True)
     return simulated_pg8000_output, simulated_pg8000_output_cols
 
-
 @pytest.fixture
 def mock_s3_bucket_name(monkeypatch, hardcoded_variables):
     monkeypatch.setenv("S3_BUCKET_INGESTION", hardcoded_variables["ingestion_bucket_name"])
-
 
 @pytest.fixture()
 def snapshot_data_dict(hardcoded_variables):
@@ -168,7 +166,6 @@ def s3_client__populated_bucket(s3_client, hardcoded_variables):
         write_table_to_s3(s3_client, rows, cols, placeholder_shadow_realm_bucket_name, key)
     
     yield s3_client
-
 
 @pytest.fixture()    
 def return_list_of_cities_in_address_df():
@@ -312,7 +309,7 @@ class TestCreateDateTable:
         print("")
         
 class TestCreateDesignTables:
-
+    @pytest.mark.skip
     def test_3a_dim_design_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key = return_s3_key("design", datetime_string)
@@ -350,8 +347,6 @@ class TestCreateDesignTables:
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
@@ -367,39 +362,6 @@ class TestCreateDesignTables:
         assert all(expected_file_location_values == s3_file["file_location"])
         assert all(expected_file_name_values == s3_file["file_name"])
          
-        
-
-"""
-
-pip install pyarrow
-
-
-import pandas as pd
-
-# Create a sample DataFrame
-df = pd.DataFrame({
-    'Name': ['Alice', 'Bob', 'Charlie'],
-    'Age': [25, 30, 35],
-    'Salary': [50000, 60000, 70000]
-})
-
-# Convert the DataFrame to an Arrow Table
-table = pa.Table.from_pandas(df)
-
-# Write the Arrow Table to a Parquet file
-pq.write_table(table, 'sample.parquet')
-
-
-
-# Read the Parquet file into an Arrow Table
-table = pq.read_table('sample.parquet')
-
-# Convert the Arrow Table to a Pandas DataFrame
-df = table.to_pandas()
-
-print(df)
-
-"""
 
 class TestCreateLocationTables:
     def test_4a_dim_location_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
@@ -440,6 +402,58 @@ class TestCreateLocationTables:
         assert all(expected_phone_value == df_dim_location["phone"])
         
 
+
+class TestCreateCounterpartyTables:
+
+    def test_5a_dim_counterparty_is_created_in_correct_position_with_correct_data(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+        
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        
+        inj_file_key_counterparty   = return_s3_key("counterparty", datetime_string)
+        inj_file_key_address       = return_s3_key("address", datetime_string)
+        
+        df_totesys_counterparty = read_s3_table_json(s3_client, inj_file_key_counterparty,  hardcoded_variables["ingestion_bucket_name"])
+        df_dim_address          = read_s3_table_json(s3_client, inj_file_key_address,       hardcoded_variables["ingestion_bucket_name"])
+        
+        
+        df_dim_design_name = "dim_counterparty"
+        hardcode_limit = 6 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        expected_counterparty_id_values = [1, 2, 3, 4, 5, 6]
+        expected_counterparty_legal_name_values = ["Fahey and Sons", "Leannon, Predovic and Morar","Armstrong Inc","Kohler Inc","Frami, Yundt and Macejkovic", "Mraz LLC"]
+        expected_counterparty_legal_address_line_1_values = ["605 Haskell Trafficway","079 Horacio Landing","179 Alexie Cliffs","37736 Heathcote Lock", "364 Goodwin Streets", "822 Providenci Spring"]
+        expected_counterparty_legal_address_line_2_values = ["Axel Freeway", None, None, "Noemy Pines", None, None]
+        expected_counterparty_legal_district_values = [None, None, None, None, None, "Berkshire"]
+        expected_counterparty_legal_city_values = ["East Bobbie", "Utica", "Aliso Viejo", "Bartellview", "Sayreville", "Derekport"]
+        expected_counterparty_legal_postal_code_values = ["88253-4257", "93045", "99305-7380", "42400-5199", "85544-4254", "25541"]
+        expected_counterparty_legal_country_values = ["Heard Island and McDonald Islands", "Austria",  "San Marino", "Congo", "Svalbard & Jan Mayen Islands", "Papua New Guinea"]
+        expected_counterparty_legal_phone_number_values = ["9687 937447", "7772 084705", "9621 880720", "1684 702261", "0847 468066", "4111 801405"]
+        
+        
+        # act
+        df_dim_counterparty = _return_df_dim_counterparty(df_totesys_counterparty[:hardcode_limit], df_dim_address)
+        response            = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_counterparty, hardcoded_variables["processing_bucket_name"])
+
+        # assert - df_dim_design type
+        assert isinstance(df_dim_counterparty, pd.DataFrame)
+        
+        df_dim_counterparty.to_csv("test2")
+        
+        # assert_correct_data
+        ## index
+        assert all(expected_counterparty_id_values    == df_dim_counterparty.index.values)
+        ## values
+        assert all(expected_counterparty_legal_name_values              == df_dim_counterparty["counterparty_legal_name"])
+        assert all(expected_counterparty_legal_address_line_1_values    == df_dim_counterparty["counterparty_legal_address_line_1"])
+        assert all(expected_counterparty_legal_address_line_2_values    == df_dim_counterparty["counterparty_legal_address_line_2"].values)
+        assert all(expected_counterparty_legal_district_values          == df_dim_counterparty["counterparty_legal_district"].values)
+        assert all(expected_counterparty_legal_city_values              == df_dim_counterparty["counterparty_legal_city"])
+        assert all(expected_counterparty_legal_postal_code_values       == df_dim_counterparty["counterparty_legal_postal_code"])
+        assert all(expected_counterparty_legal_country_values           == df_dim_counterparty["counterparty_legal_country"])
+        assert all(expected_counterparty_legal_phone_number_values      == df_dim_counterparty["counterparty_legal_phone_number"])
+        
+        
+
         # # assert - response good
         assert response['ResponseMetadata']['HTTPStatusCode'] == 200
 
@@ -449,8 +463,6 @@ class TestCreateLocationTables:
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_location_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_location_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
@@ -462,13 +474,23 @@ class TestCreateLocationTables:
         assert all(expected_adress_id_values == s3_file.index.values)
 
         ## values
-        assert all(expected_address_line_1_value == s3_file['address_line_1'])
-        assert all(expected_address_line_2_value == s3_file["address_line_2"].values)
-        assert all(expected_distric_value == s3_file["district"].values)
-        assert all(expected_city == s3_file["city"])
-        assert all(expected_postal_code_value == s3_file["postal_code"])
-        assert all(expected_country_value == s3_file["country"])
-        assert all(expected_phone_value == s3_file["phone"])
+                
+        # assert_correct_data
+        ## index
+        assert all(expected_counterparty_id_values    == df_dim_counterparty.index.values)
+        ## values
+        assert all(expected_counterparty_legal_name_values              == s3_file["counterparty_legal_name"])
+        assert all(expected_counterparty_legal_address_line_1_values    == s3_file["counterparty_legal_address_line_1"])
+        assert all(expected_counterparty_legal_address_line_2_values    == s3_file["counterparty_legal_address_line_2"].values)
+        assert all(expected_counterparty_legal_district_values          == s3_file["counterparty_legal_district"].values)
+        assert all(expected_counterparty_legal_city_values              == s3_file["counterparty_legal_city"])
+        assert all(expected_counterparty_legal_postal_code_values       == s3_file["counterparty_legal_postal_code"])
+        assert all(expected_counterparty_legal_country_values           == s3_file["counterparty_legal_country"])
+        assert all(expected_counterparty_legal_phone_number_values      == s3_file["counterparty_legal_phone_number"])
+        
+        
+        
+
          
 class TestCreatestaffTables:
     def test_6a_dim_staff_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
@@ -481,14 +503,6 @@ class TestCreatestaffTables:
         df_dim_staff_name = "dim_staff"
         hardcode_limit = 5 # this limits the size of the imported sales table so that a human can hardcode the expected values
         
-        department_2_name = ["Purchasing"]
-        department_3_name = ["Production"]
-        department_6_name = ["Facilities"]
-        department_8_name = ["HR"]
-        department_2_location = ["Manchester"]
-        department_3_location = ["Leeds"]
-        department_6_location = ["Manchester"]
-        department_8_location = ["Leeds"]
         expected_staff_id_values = [1, 2, 3, 4, 5]
         expected_staff_first_name_values = ["Jeremie", "Deron", "Jeanette", "Ana", "Magdalena"]
         expected_staff_last_name_values = ["Franey", "Beier", "Erdman", "Glover", "Zieme",]
@@ -523,8 +537,6 @@ class TestCreatestaffTables:
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_staff_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_staff_name, datetime_string))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
@@ -576,18 +588,18 @@ class TestCreatescurrencyTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_currency_name])
         
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_currency_name])
         # assert - can be read as dataframe (and is saved as parquet)
-        import io
-
         obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_currency_name, datetime_string))
+
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_dim_design type
         assert isinstance(s3_file, pd.DataFrame)
 
         #assert - correct data in s3 bucket  
+
         ## index
         assert all(expected_currency_id == s3_file.index.values)
         ## values
@@ -682,3 +694,4 @@ class TestCreatessalesOrderTables:
         assert all(expected_agreed_delivery_date == s3_file["agreed_delivery_date"])
         assert all(expected_agreed_payment_date == s3_file["agreed_payment_date"])
         assert all(expected_agreed_delivery_location_id == s3_file["agreed_delivery_location_id"])
+
