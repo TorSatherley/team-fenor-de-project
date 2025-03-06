@@ -1,0 +1,68 @@
+{"counterparty_id":1,"counterparty_legal_name":"Fahey and Sons","legal_address_id":15,"commercial_contact":"Micheal Toy","delivery_contact":"Mrs. Lucy Runolfsdottir","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"
+{"counterparty_id":2,"counterparty_legal_name":"Leannon, Predovic and Morar","legal_address_id":28,"commercial_contact":"Melba Sanford","delivery_contact":"Jean Hane III","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":3,"counterparty_legal_name":"Armstrong Inc","legal_address_id":2,"commercial_contact":"Jane Wiza","delivery_contact":"Myra Kovacek","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":4,"counterparty_legal_name":"Kohler Inc","legal_address_id":29,"commercial_contact":"Taylor Haag","delivery_contact":"Alfredo Cassin II","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":5,"counterparty_legal_name":"Frami, Yundt and Macejkovic","legal_address_id":22,"commercial_contact":"Homer Mitchell","delivery_contact":"Ivan Balistreri","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":6,"counterparty_legal_name":"Mraz LLC","legal_address_id":23,"commercial_contact":"Florence Casper","delivery_contact":"Eva Upton","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":7,"counterparty_legal_name":"Padberg, Lueilwitz and Johnson","legal_address_id":16,"commercial_contact":"Ms. Wilma Witting","delivery_contact":"Christy O'Hara","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":8,"counterparty_legal_name":"Grant - Lakin","legal_address_id":16,"commercial_contact":"Emily Orn","delivery_contact":"Veronica Fay","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":9,"counterparty_legal_name":"Price LLC","legal_address_id":5,"commercial_contact":"Sheryl Langworth","delivery_contact":"Simon Schoen","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":10,"counterparty_legal_name":"Bosco - Grant","legal_address_id":10,"commercial_contact":"Ed Halvorson","delivery_contact":"Dewey Kuhic","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+{"counterparty_id":6,"counterparty_legal_name":"Mraz LLC","legal_address_id":23,"commercial_contact":"Florence Casper","delivery_contact":"Eva Upton","created_at":"2022-11-03T14:20:51.563","last_updated":"2022-11-03T14:20:51.563"}
+
+"counterparty_legal_name":"Fahey and Sons",                 "legal_address_id":15,"commercial_contact":"Micheal Toy",       "delivery_contact":"Mrs. Lucy Runolfsdottir",   "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+"counterparty_legal_name":"Leannon, Predovic and Morar",    "legal_address_id":28,"commercial_contact":"Melba Sanford",     "delivery_contact":"Jean Hane III",             "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+"counterparty_legal_name":"Armstrong Inc",                  "legal_address_id":2, "commercial_contact":"Jane Wiza",         "delivery_contact":"Myra Kovacek",              "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+"counterparty_legal_name":"Kohler Inc",                     "legal_address_id":29,"commercial_contact":"Taylor Haag",       "delivery_contact":"Alfredo Cassin II",         "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+"counterparty_legal_name":"Frami, Yundt and Macejkovic",    "legal_address_id":22,"commercial_contact":"Homer Mitchell",    "delivery_contact":"Ivan Balistreri",           "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+"counterparty_legal_name":"Mraz LLC",                       "legal_address_id":23,"commercial_contact":"Florence Casper",   "delivery_contact":"Eva Upton",                 "created_at":"2022-11-03T14:20:51.563", "last_updated":"2022-11-03T14:20:51.563"
+
+
+
+counterparty_id
+counterparty_legal_name
+counterparty_legal_address_line_1
+counterparty_legal_address_line_2
+counterparty_legal_district
+counterparty_legal_city
+counterparty_legal_postal_code
+counterparty_legal_country
+counterparty_legal_phone_number
+
+
+counterparty_id = [1, 2, 3, 4, 5]
+counterparty_legal_name = ["Fahey and Sons", "Leannon, Predovic and Morar","Armstrong Inc","Kohler Inc","822 Providenci Spring"]
+legal_address_id = [15, 28, 2, 29, 22, 23] # not actually used in final table
+counterparty_legal_address_line_1 = ["605 Haskell Trafficway","079 Horacio Landing","179 Alexie Cliffs","37736 Heathcote Lock", "364 Goodwin Streets", "822 Providenci Spring"]
+counterparty_legal_address_line_2 = ["Axel Freeway", null, null, "Noemy Pines", null, null]
+counterparty_legal_district = [null, null, null, null, null, "Berkshire"]
+counterparty_legal_city = ["East Bobbie", "Utica", "Aliso Viejo", "Bartellview", "Sayreville", "Derekport"]
+counterparty_legal_postal_code = ["88253-4257", "93045", "99305-7380", "42400-5199", "85544-4254", "25541"]
+counterparty_legal_country = ["Heard Island and McDonald Islands", "Austria",  "San Marino", "Congo", "Svalbard & Jan Mayen Islands", "Papua New Guinea"]
+
+
+
+{"address_id":15,"address_line_1":"605 Haskell Trafficway", "address_line_2":"Axel Freeway",    "district":null,        "city":"East Bobbie",   "postal_code":"88253-4257", "country":"Heard Island and McDonald Islands",  "phone":"9687 937447","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+{"address_id":28,"address_line_1":"079 Horacio Landing",    "address_line_2":null,              "district":null,        "city":"Utica",         "postal_code":"93045",      "country":"Austria",                            "phone":"7772 084705","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+{"address_id":2, "address_line_1":"179 Alexie Cliffs",      "address_line_2":null,              "district":null,        "city":"Aliso Viejo",   "postal_code":"99305-7380", "country":"San Marino",                         "phone":"9621 880720","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+{"address_id":29,"address_line_1":"37736 Heathcote Lock",   "address_line_2":"Noemy Pines",     "district":null,        "city":"Bartellview",   "postal_code":"42400-5199", "country":"Congo",                              "phone":"1684 702261","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+{"address_id":22,"address_line_1":"364 Goodwin Streets",    "address_line_2":null,              "district":null,        "city":"Sayreville",    "postal_code":"85544-4254", "country":"Svalbard & Jan Mayen Islands",       "phone":"0847 468066","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+{"address_id":23,"address_line_1":"822 Providenci Spring",  "address_line_2":null,              "district":"Berkshire", "city":"Derekport",     "postal_code":"25541",      "country":"Papua New Guinea",                   "phone":"4111 801405","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
+
+commercial_contact = ["Micheal Toy", "Melba Sanford", "Jane Wiza", "Taylor Haag", "Homer Mitchell","Florence Casper", "Ms. Wilma Witting", "Emily Orn", "Sheryl Langworth","Ed Halvorson"]
+delivery_contact = ["Mrs. Lucy Runolfsdottir", "Jean Hane III", "Myra Kovacek", "Alfredo Cassin II", "Ivan Balistreri", "Eva Upton", "Christy O'Hara", "Veronica Fay", "Simon Schoen", "Dewey Kuhic"]
+created_at = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
+last_updated = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
+
+
+
+
+
+
+
+
+
+
+
+
+

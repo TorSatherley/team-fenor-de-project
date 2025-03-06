@@ -106,4 +106,6 @@ def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucke
     #except ClientError as e:
     #    return {"message": "Error", "details": str(e)}
     
+def _return_df_dim_counterparty(df_totesys_location):
     
+    return None

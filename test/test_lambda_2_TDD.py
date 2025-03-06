@@ -9,7 +9,7 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location
+from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_counterparty
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 import pyarrow as pa
@@ -126,7 +126,7 @@ def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variab
     #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
     # act
     datetime_str = return_datetime_string()
-    jsonl_list = ["design"]
+    jsonl_list = ["design", "address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "sales_order", "staff", "transaction"    ]
     for jsonl_file in jsonl_list:
         key = return_s3_key("design", datetime_str)
         with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
@@ -371,6 +371,10 @@ class TestCreateDesignTables:
          
         
 
+
+
+
+
 """
 
 pip install pyarrow
@@ -445,3 +449,77 @@ class TestCreateLocationTables:
         assert all(expected_phone_value == df_dim_location["phone"])
         
 
+class TestCreateDesignTables:
+
+    def test_5a_dim_counterparty_is_created_in_correct_position_with_correct_data(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        inj_file_key = return_s3_key("counterparty", datetime_string)
+        df_totesys_design = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
+        df_dim_design_name = "dim_counterparty"
+        hardcode_limit = 5 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        
+        expected_counterparty_id_values         = [1, 2, 3, 4, 5]
+        expected_counterparty_legal_name_values = ["Fahey and Sons", "Leannon, Predovic and Morar","Armstrong Inc","Kohler Inc", "Frami, Yundt and Macejkovic"]
+        expected_legal_address_id_values        = [15, 28, 2, 29, 22]
+        expected_commercial_contact_values      = ["Micheal Toy", "Melba Sanford", "Jane Wiza", "Taylor Haag", "Homer Mitchell"]
+        expected_delivery_contact_values        = ["Mrs. Lucy Runolfsdottir", "Jean Hane III", "Myra Kovacek", "Alfredo Cassin II", "Ivan Balistreri"]
+        expected_created_at_values              = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
+        expected_last_updated_values            = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
+        
+        # act
+        df_dim_design = _return_df_dim_counterparty(df_totesys_design[:hardcode_limit])
+        response      = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
+
+        # assert - df_dim_design type
+        assert isinstance(df_dim_design, pd.DataFrame)
+        
+        # assert_correct_data
+        ## index
+        assert all(expected_counterparty_id_values    == df_dim_design.index.values)
+        ## values
+        assert all(expected_design_name_values  == df_dim_design['design_name'])
+        
+        
+        assert all(expected_counterparty_legal_name_values  == df_dim_design['counterparty_counterparty_legal_name'])
+        assert all(expected_legal_address_id_values         == df_dim_design['counterparty_legal_address_id'])
+        
+        
+        
+        assert all(expected_commercial_contact_values       == df_dim_design['counterparty_commercial_contact'])
+        assert all(expected_delivery_contact_values         == df_dim_design['counterparty_delivery_contact'])
+        assert all(expected_created_at_values               == df_dim_design['counterparty_created_at'])
+        assert all(expected_last_updated_values             == df_dim_design['counterparty_last_updated'])
+        
+        
+        
+        
+        
+        
+        
+        # # assert - response good
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+        # assert - design parquet file exists
+        response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx")
+        print(response_list_of_s3_filepaths)
+        actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
+        
+        # assert - can be read as dataframe (and is saved as parquet)
+        import io
+
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
+        s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
+        
+        # assert - df_dim_design type
+        assert isinstance(s3_file, pd.DataFrame)
+
+        #assert - correct data in s3 bucket  
+        ## index 
+        assert all(expected_design_id_values == s3_file.index.values)
+
+        ## values
+        assert all(expected_design_name_values == s3_file['design_name'])
+        assert all(expected_file_location_values == s3_file["file_location"])
+        assert all(expected_file_name_values == s3_file["file_name"])
