@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from botocore.exceptions import ClientError
 from io import BytesIO
+from pprint import pprint
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -82,29 +83,29 @@ def _return_df_dim_design(df_totesys_design):
     
     return df_reduced
 
-def _return_df_dim_location(df_totesys_design):
+def _return_df_dim_location(df_totesys_address):
 
-    columns = ['location_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
-    df_design_copy = copy(df_totesys_design)
-    df_reduced = df_design_copy.loc[:,columns]
-    df_reduced.set_index("location_id", inplace=True)
+    columns = ['address_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
+    df_location_copy = copy(df_totesys_address)
+    df_reduced = df_location_copy.loc[:,columns]
+    df_reduced.set_index("address_id", inplace=True)
     
     return df_reduced
 
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     
-    #try:
-    key = return_s3_key(table_name, datetime_string)
-    table = pa.Table.from_pandas(df_file)
+    try:
+        key = return_s3_key(table_name, datetime_string)
+        table = pa.Table.from_pandas(df_file)
     
-    buffer = io.BytesIO()
-    pq.write_table(table, buffer)
-    buffer.seek(0)  # Reset buffer positio
-    response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
+        buffer = io.BytesIO()
+        pq.write_table(table, buffer)
+        buffer.seek(0)  # Reset buffer positio
+        response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
 
-    return response
-    #except ClientError as e:
-    #    return {"message": "Error", "details": str(e)}
+      return response
+    except ClientError as e:
+        return {"message": "Error", "details": str(e)}
     
 def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_address):
     
@@ -138,3 +139,59 @@ def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_address):
     df_merged.to_csv("test.csv")
     
     return df_merged
+
+ 
+def _return_df_dim_staff(df_totesys_staff, df_totesys_department):
+    # Ensure the required columns exist in both DataFrames
+    expected_staff_columns = ['staff_id', 'first_name', 'last_name', 'department_id', 'email_address']
+    expected_department_columns = ['department_id', 'department_name', 'location']
+
+    # Select and validate staff columns
+    df_staff_copy = copy(df_totesys_staff)
+    df_staff_reduced = df_staff_copy.loc[:,expected_staff_columns]
+
+    # Select and validate department columns
+    df_department_copy = copy(df_totesys_department)
+    df_department_reduced = df_department_copy.loc[:,expected_department_columns]
+
+    # Merge staff with department data
+    df_merged = df_staff_reduced.merge(df_department_reduced, on="department_id")
+
+    # Select required columns, ensuring they exist in the merged DataFrame
+    selected_columns = ["staff_id", 'first_name', 'last_name', 'department_name', 'location', 'email_address']
+    df_final = df_merged.loc[:,selected_columns]
+    df_final.set_index("staff_id", inplace=True)
+
+    return df_final
+
+def _return_df_dim_currency(df_totesys_currency):
+    columns = ["currency_id", "currency_code", "currency_name"]
+    currency_name_values = {"GBP": "Great British Pounds","USD": "United States Dollars","EUR": "Euro"}
+    df_currency_copy = copy(df_totesys_currency)
+    df_currency_copy["currency_name"] = df_currency_copy["currency_code"].map(currency_name_values)
+    df_reduced = df_currency_copy.loc[:,columns]
+    df_reduced.set_index("currency_id", inplace=True)
+    
+    return df_reduced
+
+def _return_df_fact_sales_order(df_totesys_sales_order):
+    columns = ["sales_record_id", "sales_order_id", "created_date", "created_time", "last_updated_date", "last_updated_time", "sales_staff_id", "counterparty_id", "units_sold", "unit_price", "currency_id", "design_id", "agreed_payment_date", "agreed_delivery_date", "agreed_delivery_location_id"]
+    df_sales_order_copy = copy(df_totesys_sales_order) 
+
+    df_sales_order_copy['created_at'] = pd.to_datetime(df_sales_order_copy['created_at'])
+    df_sales_order_copy['last_updated'] = pd.to_datetime(df_sales_order_copy['last_updated'])
+    df_sales_order_copy['sales_record_id'] = range(1, len(df_sales_order_copy)+1)
+
+    df_sales_order_copy['created_date'] = df_sales_order_copy["created_at"].dt.date.astype(str)
+    df_sales_order_copy['created_time'] = df_sales_order_copy["created_at"].dt.strftime('%H:%M:%S.%f').str[:-3]
+
+    df_sales_order_copy['last_updated_date'] = df_sales_order_copy["last_updated"].dt.date.astype(str)
+    df_sales_order_copy['last_updated_time'] = df_sales_order_copy["last_updated"].dt.strftime('%H:%M:%S.%f').str[:-3]
+    df_sales_order_copy['sales_staff_id'] = df_sales_order_copy["staff_id"]
+
+    df_reduced = df_sales_order_copy.loc[:,columns]
+    df_reduced.set_index("sales_record_id", inplace=True)
+
+    return df_reduced
+    
+
