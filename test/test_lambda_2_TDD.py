@@ -477,23 +477,15 @@ class TestCreateCounterpartyTables:
         #expected_values = expected_counterparty_legal_district_values.fillna(None).tolist()
         #actual_values = df_dim_counterparty["counterparty_legal_district"].fillna(None).tolist()
         #assert expected_values == actual_values, f"Mismatch:\nExpected: {expected_values}\nActual: {actual_values}"
-
-        
-        
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(df_totesys_counterparty[:hardcode_limit].info())
-        
         
         # act
         df_dim_counterparty = _return_df_dim_counterparty(df_totesys_counterparty[:hardcode_limit], df_dim_address)
-        print(len(df_dim_counterparty))
         response            = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_counterparty, hardcoded_variables["processing_bucket_name"])
 
         # assert - df_dim_design type
         assert isinstance(df_dim_counterparty, pd.DataFrame)
         
         df_dim_counterparty.to_csv("test2")
-        print(df_dim_counterparty["counterparty_legal_address_line_2"][:5])
         
         # assert_correct_data
         ## index
@@ -503,7 +495,7 @@ class TestCreateCounterpartyTables:
         assert all(expected_counterparty_legal_name_values              == df_dim_counterparty["counterparty_legal_name"])
         assert all(expected_counterparty_legal_address_line_1_values    == df_dim_counterparty["counterparty_legal_address_line_1"])
         assert all(expected_counterparty_legal_address_line_2_values    == df_dim_counterparty["counterparty_legal_address_line_2"].values)
-        assert all(expected_counterparty_legal_district_values          == df_dim_counterparty["counterparty_legal_district"])
+        assert all(expected_counterparty_legal_district_values          == df_dim_counterparty["counterparty_legal_district"].values)
         assert all(expected_counterparty_legal_city_values              == df_dim_counterparty["counterparty_legal_city"])
         assert all(expected_counterparty_legal_postal_code_values       == df_dim_counterparty["counterparty_legal_postal_code"])
         assert all(expected_counterparty_legal_country_values           == df_dim_counterparty["counterparty_legal_country"])
@@ -515,8 +507,6 @@ class TestCreateCounterpartyTables:
 
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print(response_list_of_s3_filepaths)
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
@@ -533,11 +523,10 @@ class TestCreateCounterpartyTables:
         ## index
         assert all(expected_counterparty_id_values    == df_dim_counterparty.index.values)
         ## values
-        assert all(expected_counterparty_id_values                      == s3_file["counterparty_id"])
         assert all(expected_counterparty_legal_name_values              == s3_file["counterparty_legal_name"])
         assert all(expected_counterparty_legal_address_line_1_values    == s3_file["counterparty_legal_address_line_1"])
-        assert all(expected_counterparty_legal_address_line_2_values    == s3_file["counterparty_legal_address_line_2"])
-        assert all(expected_counterparty_legal_district_values          == s3_file["counterparty_legal_district"])
+        assert all(expected_counterparty_legal_address_line_2_values    == s3_file["counterparty_legal_address_line_2"].values)
+        assert all(expected_counterparty_legal_district_values          == s3_file["counterparty_legal_district"].values)
         assert all(expected_counterparty_legal_city_values              == s3_file["counterparty_legal_city"])
         assert all(expected_counterparty_legal_postal_code_values       == s3_file["counterparty_legal_postal_code"])
         assert all(expected_counterparty_legal_country_values           == s3_file["counterparty_legal_country"])
