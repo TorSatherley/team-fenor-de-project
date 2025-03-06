@@ -3,7 +3,7 @@ resource "aws_lambda_function" "lambda_transform_handler" {
   function_name    = "${var.lambda_transform_handler}"
   role             = aws_iam_role.lambda_transform_exec.arn
   runtime          = "python3.13"
-  handler          = "lambda_transform.lambda_handler"
+  handler          = "src.lambda_transform.lambda_handler"
   timeout         = 600
   layers            = [aws_lambda_layer_version.lambda_transform_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1"]
   filename         = data.archive_file.lambda_transform_package.output_path
@@ -16,10 +16,23 @@ resource "aws_lambda_function" "lambda_transform_handler" {
   }
 }
 
+# data "archive_file" "lambda_transform_package" {
+#   type        = "zip"
+#   source_dir  = "${path.module}/../../src"
+#   output_path = "${path.module}/lambda_transform.zip"
+# }
+
 data "archive_file" "lambda_transform_package" {
   type        = "zip"
-  source_dir  = "${path.module}/../../src"
   output_path = "${path.module}/lambda_transform.zip"
+  source {
+    content = file("${path.module}/../../src/lambda_transform.py")
+    filename = "src/lambda_transform.py"
+  }
+  source {
+    content = file("${path.module}/../../src/utils.py")
+    filename = "src/utils.py"
+  }
 }
 
 

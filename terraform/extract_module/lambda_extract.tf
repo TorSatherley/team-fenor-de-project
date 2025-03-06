@@ -4,7 +4,7 @@ resource "aws_lambda_function" "lambda_extract_handler" {
   function_name    = "${var.lambda_extract_handler}"
   runtime          = "python3.13"
   role             = aws_iam_role.lambda_extract_iam_role.arn
-  handler          = "lambda_extract.lambda_handler"
+  handler          = "src.lambda_extract.lambda_handler"
   timeout          =  200
   layers            = [ aws_lambda_layer_version.lambda_extract_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1" ]
   source_code_hash = data.archive_file.lambda_extract_package.output_base64sha256
@@ -26,11 +26,29 @@ resource "aws_lambda_function" "lambda_extract_handler" {
 }
 
 
+# data "archive_file" "lambda_extract_package" {
+#   type        = "zip"
+#   source_dir  = "${path.module}/../../"
+#   #source_file = "${path.module}/../../src/"
+#   output_path = "${path.module}/lambda_extract.zip"
+#   #excludes    = ["Makefile", "data", "requirements.txt", "terraform", "venv.nosync", "README.md", "db", "test"]
+
+# }
+
 data "archive_file" "lambda_extract_package" {
   type        = "zip"
-  source_dir  = "${path.module}/../../src"
   output_path = "${path.module}/lambda_extract.zip"
+  source {
+    content = file("${path.module}/../../src/lambda_extract.py")
+    filename = "src/lambda_extract.py"
+  }
+  source {
+    content = file("${path.module}/../../src/utils.py")
+    filename = "src/utils.py"
+  }
 }
+
+
 
 # Layers 
 # Added AWS SDK Pandas arn to lambda function  
