@@ -126,10 +126,10 @@ def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variab
     #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
     # act
     datetime_str = return_datetime_string()
-    jsonl_list = ["design"]
+    jsonl_list = ["design", "address", "staff"]
     for jsonl_file in jsonl_list:
-        key = return_s3_key("design", datetime_str)
-        with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
+        key = return_s3_key(jsonl_file, datetime_str)
+        with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "r") as file:
             s3_client.put_object(Bucket=hardcoded_variables["ingestion_bucket_name"], Key=key, Body=file.read())
     
     
@@ -346,8 +346,6 @@ class TestCreateDesignTables:
 
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx")
-        print(response_list_of_s3_filepaths)
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
         
@@ -404,44 +402,71 @@ print(df)
 """
 
 class TestCreateLocationTables:
-    @pytest.mark.skip
     def test_4a_dim_location_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
-        inj_file_key = return_s3_key("location", datetime_string)
+        inj_file_key = return_s3_key("address", datetime_string)
         df_totesys_location = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         df_dim_location_name = "dim_location"
         hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
         
-        expected_adress_id = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        expected_adress_id_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         expected_address_line_1_value = ["6826 Herzog Via", "179 Alexie Cliffs", "148 Sincere Fort", "6102 Rogahn Skyway", "34177 Upton Track", "846 Kailey Island", "75653 Ernestine Ways", "0579 Durgan Common", "644 Edward Garden", "49967 Kaylah Flat"]
-        expected_address_line_2_value = [None,None,None,None,None,None,None,None,None,"Tremaine Circles"]
+        expected_address_line_2_value = [None, None, None, None, None, None, None, None, None, "Tremaine Circles"]
         expected_distric_value = ["Avon", None, None, "Bedfordshire", None, None, "Buckinghamshire", None, "Borders", "Bedfordshire"]
         expected_city = ["New Patienceburgh", "Aliso Viejo", "Lake Charles", "Olsonside", "Fort Shadburgh", "Kendraburgh", "North Deshaun", "Suffolk", "New Tyra", "Beaulahcester"]
         expected_postal_code_value = ["28441", "99305-7380", "89360", "47518", "55993-8850", "08841", "02813", "56693-0660", "30825-5672", "89470"]
         expected_country_value = ["Turkey", "San Marino", "Samoa", "Republic of Korea", "Bosnia and Herzegovina", "Zimbabwe", "Faroe Islands", "United Kingdom", "Australia", "Democratic People's Republic of Korea"]
         expected_phone_value = ["1803 637401", "9621 880720", "0730 783349", "1239 706295", "0081 009772", "0447 798320", "1373 796260", "8935 157571", "0768 748652", "4949 998070"]
-        #print(" ------- df_totesys_location ------- ")
-        ##print(df_totesys_sales_order[:hardcode_limit])
-        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
+
         
         # act
         df_dim_location = _return_df_dim_location(df_totesys_location[:hardcode_limit])
         response      = populate_parquet_file(s3_client, datetime_string, df_dim_location_name, df_dim_location, hardcoded_variables["processing_bucket_name"])
-        #print("---------------------------------------")
-        #print(response)
+
         # assert - df_dim_location type
         assert isinstance(df_dim_location, pd.DataFrame)
         
         # assert_correct_data
         ## index
-        assert all(expected_adress_id == df_dim_location.index.values)
+        assert all(expected_adress_id_values == df_dim_location.index.values)
         ## values
         assert all(expected_address_line_1_value == df_dim_location['address_line_1'])
-        assert all(expected_address_line_2_value == df_dim_location["address_line_2"])
-        assert all(expected_distric_value == df_dim_location["district"])
+        assert all(expected_address_line_2_value == df_dim_location["address_line_2"].values)
+        assert all(expected_distric_value == df_dim_location["district"].values)
         assert all(expected_city == df_dim_location["city"])
         assert all(expected_postal_code_value == df_dim_location["postal_code"])
         assert all(expected_country_value == df_dim_location["country"])
         assert all(expected_phone_value == df_dim_location["phone"])
         
 
+        # # assert - response good
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+        # assert - design parquet file exists
+        response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_location_name])
+        
+        # assert - can be read as dataframe (and is saved as parquet)
+        import io
+
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_location_name, datetime_string))
+        s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
+        
+        # assert - df_dim_design type
+        assert isinstance(s3_file, pd.DataFrame)
+
+        #assert - correct data in s3 bucket  
+        ## index 
+        assert all(expected_adress_id_values == s3_file.index.values)
+
+        ## values
+        assert all(expected_address_line_1_value == s3_file['address_line_1'])
+        assert all(expected_address_line_2_value == s3_file["address_line_2"].values)
+        assert all(expected_distric_value == s3_file["district"].values)
+        assert all(expected_city == s3_file["city"])
+        assert all(expected_postal_code_value == s3_file["postal_code"])
+        assert all(expected_country_value == s3_file["country"])
+        assert all(expected_phone_value == s3_file["phone"])
+         

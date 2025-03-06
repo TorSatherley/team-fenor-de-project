@@ -82,12 +82,12 @@ def _return_df_dim_design(df_totesys_design):
     
     return df_reduced
 
-def _return_df_dim_location(df_totesys_design):
+def _return_df_dim_location(df_totesys_location):
 
-    columns = ['location_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
-    df_design_copy = copy(df_totesys_design)
+    columns = ['address_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
+    df_design_copy = copy(df_totesys_location)
     df_reduced = df_design_copy.loc[:,columns]
-    df_reduced.set_index("location_id", inplace=True)
+    df_reduced.set_index("address_id", inplace=True)
     
     return df_reduced
 
