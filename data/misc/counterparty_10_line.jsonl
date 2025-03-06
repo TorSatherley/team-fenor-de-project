@@ -41,6 +41,8 @@ counterparty_legal_postal_code = ["88253-4257", "93045", "99305-7380", "42400-51
 counterparty_legal_country = ["Heard Island and McDonald Islands", "Austria",  "San Marino", "Congo", "Svalbard & Jan Mayen Islands", "Papua New Guinea"]
 
 
+phone = ["9687 937447", "7772 084705", "9621 880720", "1684 702261", "0847 468066", "4111 801405"]
+
 
 {"address_id":15,"address_line_1":"605 Haskell Trafficway", "address_line_2":"Axel Freeway",    "district":null,        "city":"East Bobbie",   "postal_code":"88253-4257", "country":"Heard Island and McDonald Islands",  "phone":"9687 937447","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}
 {"address_id":28,"address_line_1":"079 Horacio Landing",    "address_line_2":null,              "district":null,        "city":"Utica",         "postal_code":"93045",      "country":"Austria",                            "phone":"7772 084705","created_at":"2022-11-03T14:20:49.962","last_updated":"2022-11-03T14:20:49.962"}

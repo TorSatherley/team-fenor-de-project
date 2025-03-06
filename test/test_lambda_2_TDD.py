@@ -456,44 +456,38 @@ class TestCreateDesignTables:
         inj_file_key = return_s3_key("counterparty", datetime_string)
         df_totesys_design = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
         df_dim_design_name = "dim_counterparty"
-        hardcode_limit = 5 # this limits the size of the imported sales table so that a human can hardcode the expected values
+        hardcode_limit = 6 # this limits the size of the imported sales table so that a human can hardcode the expected values
         
-        expected_counterparty_id_values         = [1, 2, 3, 4, 5]
-        expected_counterparty_legal_name_values = ["Fahey and Sons", "Leannon, Predovic and Morar","Armstrong Inc","Kohler Inc", "Frami, Yundt and Macejkovic"]
-        expected_legal_address_id_values        = [15, 28, 2, 29, 22]
-        expected_commercial_contact_values      = ["Micheal Toy", "Melba Sanford", "Jane Wiza", "Taylor Haag", "Homer Mitchell"]
-        expected_delivery_contact_values        = ["Mrs. Lucy Runolfsdottir", "Jean Hane III", "Myra Kovacek", "Alfredo Cassin II", "Ivan Balistreri"]
-        expected_created_at_values              = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
-        expected_last_updated_values            = ["2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563", "2022-11-03T14:20:51.563"]
+        expected_counterparty_id_values = [1, 2, 3, 4, 5]
+        expected_counterparty_legal_name_values = ["Fahey and Sons", "Leannon, Predovic and Morar","Armstrong Inc","Kohler Inc","822 Providenci Spring"]
+        expected_counterparty_legal_address_line_1_values = ["605 Haskell Trafficway","079 Horacio Landing","179 Alexie Cliffs","37736 Heathcote Lock", "364 Goodwin Streets", "822 Providenci Spring"]
+        expected_counterparty_legal_address_line_2_values = ["Axel Freeway", None, None, "Noemy Pines", None, None]
+        expected_counterparty_legal_district_values = [None, None, None, None, None, "Berkshire"]
+        expected_counterparty_legal_city_values = ["East Bobbie", "Utica", "Aliso Viejo", "Bartellview", "Sayreville", "Derekport"]
+        expected_counterparty_legal_postal_code_values = ["88253-4257", "93045", "99305-7380", "42400-5199", "85544-4254", "25541"]
+        expected_counterparty_legal_country_values = ["Heard Island and McDonald Islands", "Austria",  "San Marino", "Congo", "Svalbard & Jan Mayen Islands", "Papua New Guinea"]
+        expected_counterparty_legal_phone_number_values = ["9687 937447", "7772 084705", "9621 880720", "1684 702261", "0847 468066", "4111 801405"]
         
         # act
-        df_dim_design = _return_df_dim_counterparty(df_totesys_design[:hardcode_limit])
-        response      = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_design, hardcoded_variables["processing_bucket_name"])
+        df_dim_counterparty = _return_df_dim_counterparty(df_totesys_design[:hardcode_limit])
+        response            = populate_parquet_file(s3_client, datetime_string, df_dim_design_name, df_dim_counterparty, hardcoded_variables["processing_bucket_name"])
 
         # assert - df_dim_design type
-        assert isinstance(df_dim_design, pd.DataFrame)
+        assert isinstance(df_dim_counterparty, pd.DataFrame)
         
         # assert_correct_data
         ## index
-        assert all(expected_counterparty_id_values    == df_dim_design.index.values)
+        assert all(expected_counterparty_id_values    == df_dim_counterparty.index.values)
         ## values
-        assert all(expected_design_name_values  == df_dim_design['design_name'])
-        
-        
-        assert all(expected_counterparty_legal_name_values  == df_dim_design['counterparty_counterparty_legal_name'])
-        assert all(expected_legal_address_id_values         == df_dim_design['counterparty_legal_address_id'])
-        
-        
-        
-        assert all(expected_commercial_contact_values       == df_dim_design['counterparty_commercial_contact'])
-        assert all(expected_delivery_contact_values         == df_dim_design['counterparty_delivery_contact'])
-        assert all(expected_created_at_values               == df_dim_design['counterparty_created_at'])
-        assert all(expected_last_updated_values             == df_dim_design['counterparty_last_updated'])
-        
-        
-        
-        
-        
+        assert all(expected_counterparty_id_values                      == df_dim_counterparty["counterparty_id"])
+        assert all(expected_counterparty_legal_name_values              == df_dim_counterparty["counterparty_legal_name"])
+        assert all(expected_counterparty_legal_address_line_1_values    == df_dim_counterparty["counterparty_legal_address_line_1"])
+        assert all(expected_counterparty_legal_address_line_2_values    == df_dim_counterparty["counterparty_legal_address_line_2"])
+        assert all(expected_counterparty_legal_district_values          == df_dim_counterparty["counterparty_legal_district"])
+        assert all(expected_counterparty_legal_city_values              == df_dim_counterparty["counterparty_legal_city"])
+        assert all(expected_counterparty_legal_postal_code_values       == df_dim_counterparty["counterparty_legal_postal_code"])
+        assert all(expected_counterparty_legal_country_values           == df_dim_counterparty["counterparty_legal_country"])
+        assert all(expected_counterparty_legal_phone_number_values      == df_dim_counterparty["counterparty_legal_phone_number"])
         
         
         # # assert - response good
@@ -516,10 +510,24 @@ class TestCreateDesignTables:
         assert isinstance(s3_file, pd.DataFrame)
 
         #assert - correct data in s3 bucket  
-        ## index 
-        assert all(expected_design_id_values == s3_file.index.values)
-
+        
+        # assert_correct_data
+        ## index
+        assert all(expected_counterparty_id_values    == df_dim_counterparty.index.values)
         ## values
-        assert all(expected_design_name_values == s3_file['design_name'])
-        assert all(expected_file_location_values == s3_file["file_location"])
-        assert all(expected_file_name_values == s3_file["file_name"])
+        assert all(expected_counterparty_id_values                      == s3_file["counterparty_id"])
+        assert all(expected_counterparty_legal_name_values              == s3_file["counterparty_legal_name"])
+        assert all(expected_counterparty_legal_address_line_1_values    == s3_file["counterparty_legal_address_line_1"])
+        assert all(expected_counterparty_legal_address_line_2_values    == s3_file["counterparty_legal_address_line_2"])
+        assert all(expected_counterparty_legal_district_values          == s3_file["counterparty_legal_district"])
+        assert all(expected_counterparty_legal_city_values              == s3_file["counterparty_legal_city"])
+        assert all(expected_counterparty_legal_postal_code_values       == s3_file["counterparty_legal_postal_code"])
+        assert all(expected_counterparty_legal_country_values           == s3_file["counterparty_legal_country"])
+        assert all(expected_counterparty_legal_phone_number_values      == s3_file["counterparty_legal_phone_number"])
+        
+        
+        
+        
+        
+        
+        
