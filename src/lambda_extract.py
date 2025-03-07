@@ -1,7 +1,6 @@
 import os
 import json
 from datetime import datetime, date
-
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from pg8000.exceptions import DatabaseError
