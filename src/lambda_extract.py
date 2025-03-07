@@ -61,7 +61,7 @@ def lambda_handler(event, context):
             key = write_table_to_s3(
                 s3_client, bucket_name, table, rows, columns, date_and_time
             )
-            keys.append(key)
+            keys.append(key) 
 
         # Write log file to S3 bucket
         log_file(s3_client, bucket_name, keys)
