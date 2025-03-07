@@ -75,8 +75,8 @@ MOCK_ENVIROMENT = True
 @pytest.fixture()
 def hardcoded_variables():
     hardcoded_variables = {}
-    hardcoded_variables["ingestion_bucket_name"] = "totesys-ingestion-zone-fenor-dummy-test"
-    hardcoded_variables["processing_bucket_name"] = "totesys-processing-zone-fenor-dummy-test"
+    hardcoded_variables["ingestion_bucket_name"] = "totesys-ingestion-zone-fenor-dummy-test-TDD-fabio-and-connor"
+    hardcoded_variables["processing_bucket_name"] = "totesys-processing-zone-fenor-dummy-test-TDD-fabio-and-connor"
     hardcoded_variables["list_of_toteSys_tables"] = ["tableA", "tableB"]
     hardcoded_variables["AccountId"] = "AccountId"
     hardcoded_variables["list_of_tables"] = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "sales_order", "staff", "transaction"]
@@ -704,24 +704,19 @@ class TestLambdaHandler_2:
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         
         # assemble
-        expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in hardcoded_variables["list_of_tables"]]
+        expected_tables_list = ["fact_sales_order", "dim_date", "dim_staff", "dim_location", "dim_currency", "dim_design", "dim_counterparty"] #taken from sales schema code #https://dbdiagram.io/d/Copy-of-SampleDW-Sales-67cb1e50263d6cf9a09da951
+        expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in expected_tables_list]
         event = {"datetime_string":datetime_string, "testing_client":s3_client}
         
-
         # act
         response = lambda_handler(event, DummyContext)
-        
-        print("+++++++++++++++++++++")
-        print(type(response))
-        print(response)
-        
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        print(response_list_of_s3_filepaths)
+        #print(response_list_of_s3_filepaths)
         actual_s3_file_keys = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         
         # assert
-        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
-        assert expected_file_keys == actual_s3_file_keys
+        assert response['statusCode'] == 200
+        assert set(expected_file_keys) == set(actual_s3_file_keys)
         
 
 
