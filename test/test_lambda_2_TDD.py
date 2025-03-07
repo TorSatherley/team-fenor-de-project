@@ -186,7 +186,7 @@ def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
 
 
 
-#%% fixtures
+#%% tests
 
 # pg8000_rows, pg8000_cols = example_sales_order_table
 # table_name = "sales_order" # not sure if this is hardcoding
