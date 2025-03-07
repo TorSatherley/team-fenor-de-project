@@ -9,7 +9,7 @@ from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
-from src.lambda_2 import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
+from lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
 from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
 import pandas as pd
 import pyarrow as pa
@@ -186,7 +186,7 @@ def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
 
 
 
-#%% Tests
+#%% fixtures
 
 # pg8000_rows, pg8000_cols = example_sales_order_table
 # table_name = "sales_order" # not sure if this is hardcoding
@@ -229,7 +229,6 @@ class TestReads3TableJson:
         
         # assert other things
         assert isinstance(actual_df_addresses_table, pd.DataFrame)
-
 
 
 class TestCreateDateTable:
@@ -307,10 +306,11 @@ class TestCreateDateTable:
         
         # assert TODO - that the file is parquet
         print("")
+
         
 class TestCreateDesignTables:
     
-    def test_3a_dim_design_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_3a_dim_design_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key = return_s3_key("design", datetime_string)
         df_totesys_design = read_s3_table_json(s3_client, inj_file_key, hardcoded_variables["ingestion_bucket_name"])
@@ -364,7 +364,7 @@ class TestCreateDesignTables:
          
 
 class TestCreateLocationTables:
-    def test_4a_dim_location_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_4a_dim_location_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
 
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key = return_s3_key("address", datetime_string)
@@ -402,10 +402,9 @@ class TestCreateLocationTables:
         assert all(expected_phone_value == df_dim_location["phone"])
         
 
-
 class TestCreateCounterpartyTables:
 
-    def test_5a_dim_counterparty_is_created_in_correct_position_with_correct_data(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_5a_dim_counterparty_is_created_in_correct_position_with_correct_data(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
         
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         
@@ -488,12 +487,9 @@ class TestCreateCounterpartyTables:
         assert all(expected_counterparty_legal_country_values           == s3_file["counterparty_legal_country"])
         assert all(expected_counterparty_legal_phone_number_values      == s3_file["counterparty_legal_phone_number"])
         
-        
-        
-
          
 class TestCreatestaffTables:
-    def test_6a_dim_staff_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_6a_dim_staff_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
 
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key_staff = return_s3_key("staff", datetime_string)
@@ -555,7 +551,7 @@ class TestCreatestaffTables:
         
     
 class TestCreatescurrencyTables:
-    def test_7a_dim_currency_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_7a_dim_currency_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
 
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key_staff = return_s3_key("currency", datetime_string)
@@ -606,8 +602,9 @@ class TestCreatescurrencyTables:
         assert all(expected_currency_code == s3_file['currency_code'])
         assert all(expected_currency_name == s3_file["currency_name"])
 
+
 class TestCreatessalesOrderTables:
-    def test_7a_fact_sales_order_table_is_created_in_correct_position(self, s3_client, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_8a_fact_sales_order_table_is_created_in_correct_position(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
 
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         inj_file_key_staff = return_s3_key("sales_order", datetime_string)
@@ -694,4 +691,26 @@ class TestCreatessalesOrderTables:
         assert all(expected_agreed_delivery_date == s3_file["agreed_delivery_date"])
         assert all(expected_agreed_payment_date == s3_file["agreed_payment_date"])
         assert all(expected_agreed_delivery_location_id == s3_file["agreed_delivery_location_id"])
+
+
+class TestLambdaHandler_2:
+    def test_9a_check_all_required_parquet_files_are_populated(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+        
+        s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
+        
+        # assemble
+        expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in hardcoded_variables["list_of_tables"]]
+        event = {"datetime_string":datetime_string}
+        
+        # act
+        response = lambda_handler(event, DummyContext)
+        response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
+        actual_s3_file_keys = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
+        
+        # assert
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+        assert expected_file_keys == actual_s3_file_keys
+        
+
+
 
