@@ -300,7 +300,7 @@ class TestGetRowsAndColumnsFromTable:
         """Test handling when the table does not exist."""
         mock_conn = MagicMock()
         mock_conn.run.side_effect = Exception("relation 'non_existent' does not exist")
-        rows, columns = get_rows_and_columns_from_table(
+        rows, columns, last_checked = get_rows_and_columns_from_table(
             mock_conn, "non_existent", mock_last_checked
         )
         assert columns == []
@@ -312,7 +312,7 @@ class TestGetRowsAndColumnsFromTable:
         """Test handling of an unexpected exception."""
         mock_conn = MagicMock()
         mock_conn.run.side_effect = Exception("Unexpected error")
-        rows, columns = get_rows_and_columns_from_table(
+        rows, columns, mock_last_checked = get_rows_and_columns_from_table(
             mock_conn, "users", mock_last_checked
         )
         assert columns == []

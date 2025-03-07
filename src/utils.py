@@ -61,9 +61,7 @@ def get_rows_and_columns_from_table(conn, table, last_checked):
         columns = [column[0] for column in columns_query]
         recent_check = datetime.now()
         query = f"SELECT * FROM {table} WHERE created_at > '{last_checked}' OR last_updated > '{last_checked}'"
-        rows = conn.run(
-            query
-        )
+        rows = conn.run(query)
         return rows, columns, recent_check
     except Exception as e:
         print(f"Error querying table {table}: {e}")
