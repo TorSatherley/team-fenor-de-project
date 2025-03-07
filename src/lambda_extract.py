@@ -50,7 +50,7 @@ def lambda_handler(event, context):
         for table in table_names:
             # if the table doesnt have a last checked time, create it with old date so that it collects all data on first run
             if table not in last_checked:
-                last_checked[table] = date(2000, 1, 1)
+                last_checked[table] = '2000-01-01'
             # Query the table
             rows, columns, recent_check = get_rows_and_columns_from_table(
                 conn, table, last_checked[table]
