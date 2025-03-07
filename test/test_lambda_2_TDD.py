@@ -5,7 +5,7 @@ import json
 from unittest.mock import Mock, patch
 from pprint import pprint
 from datetime import datetime
-from src.lambda_ingest_dummy import write_table_to_s3, lambda_handler
+from src.lambda_transform_handler import lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
@@ -19,7 +19,7 @@ import io
 
 """
 test_lambda_2_TDD.py
-Author: Fabio Greenwood
+Author(s): Fabio Greenwood and Connor Creed
 
 Intro:
     This module contains unit tests for the second lambda function.
@@ -700,10 +700,15 @@ class TestLambdaHandler_2:
         
         # assemble
         expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in hardcoded_variables["list_of_tables"]]
-        event = {"datetime_string":datetime_string}
+        event = {"datetime_string":datetime_string, "testing_client":s3_client}
         
         # act
         response = lambda_handler(event, DummyContext)
+        
+        print("+++++++++++++++++++++")
+        print(type(response))
+        print(response)
+        
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         print(response_list_of_s3_filepaths)
         actual_s3_file_keys = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
