@@ -16,6 +16,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import s3fs
 import io
+from _pytest.monkeypatch import MonkeyPatch
 
 """
 test_lambda_2_TDD.py
@@ -141,8 +142,12 @@ def example_sales_order_table(hardcoded_variables):
     return simulated_pg8000_output, simulated_pg8000_output_cols
 
 @pytest.fixture
-def mock_s3_bucket_name(monkeypatch, hardcoded_variables):
-    monkeypatch.setenv("S3_BUCKET_INGESTION", hardcoded_variables["ingestion_bucket_name"])
+def mock_s3_env_vars(monkeypatch, hardcoded_variables):
+    monkeypatch = MonkeyPatch()
+    monkeypatch.setenv("INJESTION_BUCKET_NAME", hardcoded_variables["ingestion_bucket_name"])
+    monkeypatch.setenv("PROCESSED_BUCKET_NAME", hardcoded_variables["processing_bucket_name"])
+    
+        
 
 @pytest.fixture()
 def snapshot_data_dict(hardcoded_variables):
@@ -694,7 +699,7 @@ class TestCreatessalesOrderTables:
 
 
 class TestLambdaHandler_2:
-    def test_9a_check_all_required_parquet_files_are_populated(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables):
+    def test_9a_check_all_required_parquet_files_are_populated(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables, mock_s3_env_vars):
         
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
         
@@ -702,6 +707,7 @@ class TestLambdaHandler_2:
         expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in hardcoded_variables["list_of_tables"]]
         event = {"datetime_string":datetime_string, "testing_client":s3_client}
         
+
         # act
         response = lambda_handler(event, DummyContext)
         
