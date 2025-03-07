@@ -38,8 +38,8 @@ def return_datetime_string():
     year, month, day, hour, minute = timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute
     return f'{year}-{month}-{day}_{hour}-{minute}'
 
-def return_s3_key(table_name, datetime_string):
-    return f'data/{table_name}/{datetime_string}/{table_name}.json'
+def return_s3_key(table_name, datetime_string, extension=".json"):
+    return f'data/{table_name}/{datetime_string}/{table_name}{extension}'
 
 
 def simple_read_parquet_file_into_dataframe(bucket_name, key, s3_client):

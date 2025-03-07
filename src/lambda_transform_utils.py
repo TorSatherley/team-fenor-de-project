@@ -9,7 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from botocore.exceptions import ClientError
 from io import BytesIO
-from pprint import pprint
+
 
 
 def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
@@ -25,20 +25,23 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     return df
 
 
+def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
+    
+    try:
+        key = return_s3_key(table_name, datetime_string)
+        table = pa.Table.from_pandas(df_file)
+    
+        buffer = io.BytesIO()
+        pq.write_table(table, buffer)
+        buffer.seek(0)  # Reset buffer positio
+        response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
+
+        return response
+    except ClientError as e:
+        return {"message": "Error", "details": str(e)}
+
 
 def _return_df_dim_dates(df_totesys_sales_order):
-    """
-    This is a placeholder
-    
-    initial draft of transformation processes
-    
-    this will be refactor but is a bit of a PoC (proof of concept)
-    
-    this method returns the df
-    
-    return df
-    """
-    
     #%% produce unique dates mentioned
     
     # reduce to just datetime and date columns
@@ -83,6 +86,7 @@ def _return_df_dim_design(df_totesys_design):
     
     return df_reduced
 
+
 def _return_df_dim_location(df_totesys_address):
 
     columns = ['address_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
@@ -92,48 +96,15 @@ def _return_df_dim_location(df_totesys_address):
     
     return df_reduced
 
-def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     
-    try:
-        key = return_s3_key(table_name, datetime_string)
-        table = pa.Table.from_pandas(df_file)
-    
-        buffer = io.BytesIO()
-        pq.write_table(table, buffer)
-        buffer.seek(0)  # Reset buffer positio
-        response = s3_client.put_object(Bucket=bucket_name, Key=key, Body=buffer.getvalue())
-
-        return response
-    except ClientError as e:
-        return {"message": "Error", "details": str(e)}
-    
-def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_address):
-    
-    columns     = ["counterparty_id", "counterparty_legal_name", "counterparty_legal_address_line_1", "counterparty_legal_address_line_2", "counterparty_legal_district", "counterparty_legal_city", "counterparty_legal_postal_code", "counterparty_legal_country", "counterparty_legal_phone_number"]
-    
-    
+def _return_df_dim_counterparty(df_totesys_counterparty, df_dim_location):
+        
     df_count    = copy(df_totesys_counterparty[["counterparty_id", "counterparty_legal_name", "legal_address_id"]])
-    df_addy     = copy(df_dim_address[["address_id","address_line_1","address_line_2","district","city","postal_code","country","phone"]])
-    print(len(df_addy["address_line_2"].values))
+    df_addy     = copy(df_dim_location[["address_id","address_line_1","address_line_2","district","city","postal_code","country","phone"]])
     df_merged = pd.merge(df_count, df_addy, left_on='legal_address_id', right_on='address_id')
-    print("ddddddddddddddddddddd")
-    print(df_merged["address_line_2"].values)
-    
     df_merged.rename(columns={"counterparty_id" : "counterparty_id", "counterparty_legal_name" : "counterparty_legal_name", "address_line_1" : "counterparty_legal_address_line_1", "address_line_2" : "counterparty_legal_address_line_2", "district" : "counterparty_legal_district", "city" : "counterparty_legal_city", "postal_code" : "counterparty_legal_postal_code", "country" : "counterparty_legal_country", "phone" : "counterparty_legal_phone_number"}, inplace=True)
     df_merged.drop(["address_id"], axis=1, inplace=True)
     
-    #data_type_dict = {
-    #    "counterparty_id" : int, 
-    #    "counterparty_legal_name" : object, 
-    #    "counterparty_legal_address_line_1" : object, 
-    #    "counterparty_legal_address_line_2" : object, 
-    #    "counterparty_legal_district" : object, 
-    #    "counterparty_legal_city" : object, 
-    #    "counterparty_legal_postal_code" : object, 
-    #    "counterparty_legal_country" : object, 
-    #    "counterparty_legal_phone_number" : object}
-    
-    #df_merged = df_merged.astype(data_type_dict)
     df_merged.set_index("counterparty_id", inplace=True)
     
     df_merged.to_csv("test.csv")
@@ -164,6 +135,7 @@ def _return_df_dim_staff(df_totesys_staff, df_totesys_department):
 
     return df_final
 
+
 def _return_df_dim_currency(df_totesys_currency):
     columns = ["currency_id", "currency_code", "currency_name"]
     currency_name_values = {"GBP": "Great British Pounds","USD": "United States Dollars","EUR": "Euro"}
@@ -173,6 +145,7 @@ def _return_df_dim_currency(df_totesys_currency):
     df_reduced.set_index("currency_id", inplace=True)
     
     return df_reduced
+
 
 def _return_df_fact_sales_order(df_totesys_sales_order):
     columns = ["sales_record_id", "sales_order_id", "created_date", "created_time", "last_updated_date", "last_updated_time", "sales_staff_id", "counterparty_id", "units_sold", "unit_price", "currency_id", "design_id", "agreed_payment_date", "agreed_delivery_date", "agreed_delivery_location_id"]

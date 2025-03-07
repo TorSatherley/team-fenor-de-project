@@ -13,7 +13,7 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from pg8000.exceptions import DatabaseError
 import logging
-from datetime import datetime as dt
+from datetime import datetime
 from random import random, randint
 from lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design, _return_df_dim_location, populate_parquet_file, _return_df_dim_counterparty, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, return_s3_key
 from src.util import get_secret, create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file
@@ -88,8 +88,9 @@ def lambda_handler(event, context):
 
 
 
-
-
+ingestion_bucket_name = os.environ.get("INJESTION_BUCKET_NAME")
+processed_bucket_name = os.environ.get("PROCESSED_BUCKET_NAME")
+s3_client = boto3.client("s3", region_name="eu-west-2")
 
 
 
@@ -107,46 +108,24 @@ def lambda_handler(event, context):
         
     """
     try:
-        # set up connection
-        
-        
-
-secret_name = os.environ.get("SECRET_NAME")
-bucket_name = os.environ.get("BUCKET_NAME")
-sm_client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
-s3_client = boto3.client("s3", region_name="eu-west-2")
-db_credentials = get_secret(sm_client, secret_name)
-        conn = create_conn(db_credentials)
-        keys = []
-        # Get every table name in the database
-        table_query = conn.run(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE '!_%' ESCAPE '!'"
-        )
-        table_names = [table[0] for table in table_query]
-        date_and_time = datetime.today().strftime("%Y%m%d_%H%M%S")
-        
-        
-        
-        
-        
-        
-        
+        # set up connection     
+    
         #read_s3_table_json(s3_client, s3_key, ingestion_bucket_name)
         
         # variables prep
-        datetime_string = event["datetime_string"]
+        datetime_string = event["date_and_time"]
         s3_client = boto3.client("s3")
         output_data = {"quotes": []}
         
         
         # read injestion files
-        df_totesys_sales_order  = read_s3_table_json(s3_client, return_s3_key("sales_order",    datetime_string), ingestion_bucket_name)
-        df_totesys_design       = read_s3_table_json(s3_client, return_s3_key("design",         datetime_string), ingestion_bucket_name)
-        df_totesys_address      = read_s3_table_json(s3_client, return_s3_key("address",        datetime_string), ingestion_bucket_name)
-        df_totesys_counterparty = read_s3_table_json(s3_client, return_s3_key("counterparty",   datetime_string), ingestion_bucket_name)
-        df_totesys_staff        = read_s3_table_json(s3_client, return_s3_key("staff",          datetime_string), ingestion_bucket_name)
-        df_totesys_department   = read_s3_table_json(s3_client, return_s3_key("department",     datetime_string), ingestion_bucket_name)
-        df_totesys_currency     = read_s3_table_json(s3_client, return_s3_key("currency",       datetime_string), ingestion_bucket_name)
+        df_totesys_sales_order  = read_s3_table_json(s3_client, return_s3_key("sales_order",    datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_design       = read_s3_table_json(s3_client, return_s3_key("design",         datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_address      = read_s3_table_json(s3_client, return_s3_key("address",        datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_counterparty = read_s3_table_json(s3_client, return_s3_key("counterparty",   datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_staff        = read_s3_table_json(s3_client, return_s3_key("staff",          datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_department   = read_s3_table_json(s3_client, return_s3_key("department",     datetime_string, extension=".parquet"), ingestion_bucket_name)
+        df_totesys_currency     = read_s3_table_json(s3_client, return_s3_key("currency",       datetime_string, extension=".parquet"), ingestion_bucket_name)
         
         
         # produce and populate
