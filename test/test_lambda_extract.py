@@ -35,20 +35,13 @@ def mock_conn():
 
 
 @pytest.fixture
-def mock_last_checked_populated():
-    mock_date = date(2000, 1, 1)
-    return mock_date
-
-
-@pytest.fixture
-def rows_columns_recentcheck(mock_last_checked_populated):
+def rows_columns():
     """fixture to mock the output of get_rows_and_columns_from_tables in the handler for loop.
     This will be called twice in this mock, once for 'address' and 'staff'."""
     return [
         (  # address table
             [[1, "123 Northcode Road", "Leeds"], [2, "66 Fenor Drive", "Manchester"]],
             ["address_ID", "address", "city"],
-            mock_last_checked_populated,
         ),
         (  # staff table
             [
@@ -56,7 +49,6 @@ def rows_columns_recentcheck(mock_last_checked_populated):
                 [2, "Brendan", "Corbett", "yeaaboii@hotmail.co.uk"],
             ],
             ["staff_ID", "first_name", "last_name", "email"],
-            mock_last_checked_populated,
         ),
     ]
 
@@ -70,8 +62,6 @@ def s3_keys():
     ]
 
 
-@patch("src.lambda_extract.secret_name")
-@patch("src.lambda_extract.sm_client")
 @patch("src.lambda_extract.bucket_name")
 @patch("src.lambda_extract.s3_client")
 @patch("src.lambda_extract.get_secret")
@@ -89,20 +79,17 @@ def test_lambda_handler(
     mock_get_secret,
     mock_s3_client,
     mock_bucket_name,
-    mock_sm_client,
-    mock_secret_name,
     capsys,
-    rows_columns_recentcheck,
+    rows_columns,
     s3_keys,
     mock_conn,
-    mock_last_checked_populated,
 ):
     """test that the handler is calling all of the utils with the correct arguments the correct number
     of times to ensure proper integration."""
     # ARRANGE:
     mock_get_secret.return_value = {"dbname": "test_db", "user": "test_user"}
     mock_create_conn.return_value = mock_conn
-    mock_get_rows_columns.side_effect = rows_columns_recentcheck
+    mock_get_rows_columns.side_effect = rows_columns
     mock_write_table_to_s3.side_effect = s3_keys
 
     event = {}
@@ -116,14 +103,9 @@ def test_lambda_handler(
         result = lambda_handler(event, context)
     # ASSERT:
     assert result == {"message": "Batch extraction job completed"}
-    mock_get_secret.assert_called_once_with(mock_sm_client, mock_secret_name)
     mock_create_conn.assert_called_once_with({"dbname": "test_db", "user": "test_user"})
-    mock_get_rows_columns.assert_any_call(
-        mock_conn, "address", mock_last_checked_populated
-    )
-    mock_get_rows_columns.assert_any_call(
-        mock_conn, "staff", mock_last_checked_populated
-    )
+    mock_get_rows_columns.assert_any_call(mock_conn, "address")
+    mock_get_rows_columns.assert_any_call(mock_conn, "staff")
     mock_write_table_to_s3.assert_any_call(
         mock_s3_client,
         mock_bucket_name,
@@ -146,7 +128,10 @@ def test_lambda_handler(
     mock_log_file.assert_called_once_with(
         mock_s3_client,
         mock_bucket_name,
-        s3_keys,
+        [
+            "data/2025/03/28_11-15-28/address.json",
+            "data/2025/03/28_11-15-31/staff.json",
+        ],
     )
     mock_close_db.assert_called_once_with(mock_conn)
     captured = capsys.readouterr()
@@ -159,11 +144,11 @@ def test_lambda_handler(
 @patch("src.lambda_extract.get_rows_and_columns_from_table")
 @patch("src.lambda_extract.create_conn")
 def test_for_put_s3_error(
-    mock_create_conn, mock_get_rows_columns, rows_columns_recentcheck, mock_conn
+    mock_create_conn, mock_get_rows_columns, rows_columns, mock_conn
 ):
     # ARRANGE
     mock_create_conn.return_value = mock_conn
-    mock_get_rows_columns.side_effect = rows_columns_recentcheck
+    mock_get_rows_columns.side_effect = rows_columns
     event = {}
     context = None
     # ACT
