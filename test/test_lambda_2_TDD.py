@@ -349,10 +349,10 @@ class TestCreateDesignTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_design_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in [df_dim_design_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_design_name, datetime_string, extension=".parquet"))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_dim_design type
@@ -464,10 +464,10 @@ class TestCreateCounterpartyTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_counterparty_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in [df_dim_counterparty_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_counterparty_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_counterparty_name, datetime_string, extension=".parquet"))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_dim_design type
@@ -535,10 +535,10 @@ class TestCreatestaffTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_staff_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in [df_dim_staff_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_staff_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_staff_name, datetime_string, extension=".parquet"))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_dim_design type
@@ -590,9 +590,9 @@ class TestCreatescurrencyTables:
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_dim_currency_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in [df_dim_currency_name])
         # assert - can be read as dataframe (and is saved as parquet)
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_currency_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_dim_currency_name, datetime_string, extension=".parquet"))
 
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
@@ -667,12 +667,12 @@ class TestCreatessalesOrderTables:
         # assert - design parquet file exists
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
         actual_s3_file_key_list = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
-        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string) for table_name in [df_fact_sales_order_name])
+        assert set(actual_s3_file_key_list) == set(return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in [df_fact_sales_order_name])
         
         # assert - can be read as dataframe (and is saved as parquet)
         import io
 
-        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_fact_sales_order_name, datetime_string))
+        obj = s3_client.get_object(Bucket=hardcoded_variables["processing_bucket_name"], Key=return_s3_key(df_fact_sales_order_name, datetime_string, extension=".parquet"))
         s3_file = pd.read_parquet(io.BytesIO(obj['Body'].read()))
         
         # assert - df_fact_design type
@@ -705,7 +705,7 @@ class TestLambdaHandler_2:
         
         # assemble
         expected_tables_list = ["fact_sales_order", "dim_date", "dim_staff", "dim_location", "dim_currency", "dim_design", "dim_counterparty"] #taken from sales schema code #https://dbdiagram.io/d/Copy-of-SampleDW-Sales-67cb1e50263d6cf9a09da951
-        expected_file_keys = [return_s3_key(table_name, datetime_string) for table_name in expected_tables_list]
+        expected_file_keys = [return_s3_key(table_name, datetime_string, extension=".parquet") for table_name in expected_tables_list]
         event = {"datetime_string":datetime_string, "testing_client":s3_client}
         
         # act

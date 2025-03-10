@@ -133,8 +133,8 @@ def lambda_handler(event, context):
         return str(e)
 
 
-"""
-Some code for live testing
+
+# Some code for live testing
 
 if __name__ == "__main__" and True == False:
     
@@ -158,5 +158,5 @@ if __name__ == "__main__" and True == False:
     
     
     event = {"datetime_string":datetime_str}
-    result = lambda_handler(event, "context")"""
+    result = lambda_handler(event, "context")
     

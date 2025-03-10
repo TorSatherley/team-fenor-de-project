@@ -28,7 +28,7 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
 def populate_parquet_file(s3_client, datetime_string, table_name, df_file, bucket_name):
     
     try:
-        key = return_s3_key(table_name, datetime_string)
+        key = return_s3_key(table_name, datetime_string, extension=".parquet")
         table = pa.Table.from_pandas(df_file)
     
         buffer = io.BytesIO()
