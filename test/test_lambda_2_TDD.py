@@ -1,20 +1,15 @@
 import pytest
 import boto3
 from moto import mock_aws
-import json
 from unittest.mock import Mock, patch
-from pprint import pprint
 from datetime import datetime
 from src.lambda_transform_handler import lambda_handler
 from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
 from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
-from src.util import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
+from src.util import json_to_pg8000_output, return_datetime_string, write_table_to_s3
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import s3fs
 import io
 from _pytest.monkeypatch import MonkeyPatch
 
@@ -276,9 +271,6 @@ class TestCreateDateTable:
         hardcode_limit = 10 # this limits the size of the imported sales table so that a human can hardcode the expected values
         expected_dates = return_unique_dates_mentioned_in_first_10_rows_of_sale_table
         
-        print(" ------- df_totesys_sales_order ------- ")
-        #print(df_totesys_sales_order[:hardcode_limit])
-        # df_totesys_sales_order[:hardcode_limit].to_csv("data/test.csv")
         
         # act
         df_dim_dates = _return_df_dim_dates(df_totesys_sales_order[:hardcode_limit])
@@ -294,6 +286,26 @@ class TestCreateDateTable:
         assert set(expected_dates) == actual_dates_stored
         
         # assert other columns are passing correctly - we know its not working yet
+        expected_created_date_id = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        expected_year = [2022, 2022,2022, 2022, 2022, 2022, 2022, 2022, 2022, 2022]
+        expected_month = ["11","11","11","11","11","11","11","11","11","11"]
+        expected_day_= ["03", "03", "03", "03", "04", "04", "04", "07", "07", "09"]
+        expected_day_of_the_week = ["4", "3", "5", "1", "2", "3", "4", "5", "1", "2"]
+        expected_day_name = ["Thursday", "Wednesday", "Friday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Monday", "Tuesday"]
+        expected_month_name = ["November", "November", "November", "November", "November", "November", "November", "November", "November", "November"]
+        expected_quater = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+
+                # assert_correct_data
+        ## index
+        assert all(expected_created_date_id == df_dim_dates.index.values)
+        ## values
+        assert all(expected_year == df_dim_dates['year'])
+        assert all(expected_month == df_dim_dates["month"])
+        assert all(expected_day_ == df_dim_dates["day"])
+        #assert all(expected_day_of_the_week == df_dim_dates["day_of_week"])
+        assert all(expected_day_name == df_dim_dates["day_name"])
+        assert all(expected_month_name == df_dim_dates["month_name"])
+        assert all(expected_quater == df_dim_dates["quater"])
 
 
         # # assert - response good

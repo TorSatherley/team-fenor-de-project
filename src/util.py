@@ -141,7 +141,7 @@ def return_week(date_isoformat_str):
 
 
 def return_s3_key(table_name, datetime_string, extension=".json"):
-    return f'data/{table_name}/{datetime_string}/{table_name}{extension}'
+    return f'data/{datetime_string}/{table_name}{extension}'
 
 def return_datetime_string():
     timestamp = datetime.now()

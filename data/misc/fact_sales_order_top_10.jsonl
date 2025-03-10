@@ -8,3 +8,29 @@
 {"sales_order_id":10,"created_at":"2022-11-07T09:07:10.485","last_updated":"2022-11-07T09:07:10.485","design_id":3,"staff_id":16,"counterparty_id":12,"units_sold":61620,"unit_price":3.86,"currency_id":2,"agreed_delivery_date":"2022-11-09","agreed_payment_date":"2022-11-10","agreed_delivery_location_id":20}
 {"sales_order_id":11,"created_at":"2022-11-07T15:53:10.153","last_updated":"2022-11-07T15:53:10.153","design_id":9,"staff_id":14,"counterparty_id":12,"units_sold":35227,"unit_price":3.41,"currency_id":2,"agreed_delivery_date":"2022-11-08","agreed_payment_date":"2022-11-13","agreed_delivery_location_id":13}
 {"sales_order_id":12,"created_at":"2022-11-09T10:20:09.912","last_updated":"2022-11-09T10:20:09.912","design_id":2,"staff_id":8,"counterparty_id":12,"units_sold":7693,"unit_price":3.88,"currency_id":2,"agreed_delivery_date":"2022-11-13","agreed_payment_date":"2022-11-11","agreed_delivery_location_id":15}
+
+
+expected_created_date_id = ["2022-11-03", "2022-11-30", "2022-11-04", "2022-11-07", "2022-11-08", "2022-11-09", "2022-11-10", "2022-11-11", "2022-11-14", "2022-11-15"]
+expected_year = ["2022", "2022", "2022", "2022", "2022", "2022", "2022", "2022", "2022", "2022"]
+expected_month = ["11","11","11","11","11","11","11","11","11","11"]
+expected_day_= ["03", "03", "03", "03", "04", "04", "04", "07", "07", "09"]
+expected_day_of_the_week = ["4", "3", "5", "1", "2", "3", "4", "5", "1", "2"]
+expected_day_name = ["Thursday", "Wednesday", "Friday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Monday", "Tuesday"]
+expected_month_name = ["November", "November", "November", "November", "November", "November", "November", "November", "November", "November"]
+expected_quater = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+
+
+
+
+
+
+{"date_id":"2022-11-03","year":"2022","month":"11","day":"03","day_of_week":"4","day_name":"Thursday","month_name":"November","quarter":4}
+{"date_id":"2022-11-04","year":"2022","month":"11","day":"04","day_of_week":"5","day_name":"Friday","month_name":"November","quarter":4}
+{"date_id":"2022-11-30","year":"2022","month":"11","day":"30","day_of_week":"3","day_name":"Wednesday","month_name":"November","quarter":4}
+{"date_id":"2022-11-07","year":"2022","month":"11","day":"07","day_of_week":"1","day_name":"Monday","month_name":"November","quarter":4}
+{"date_id":"2022-11-08","year":"2022","month":"11","day":"08","day_of_week":"2","day_name":"Tuesday","month_name":"November","quarter":4}
+{"date_id":"2022-11-09","year":"2022","month":"11","day":"09","day_of_week":"3","day_name":"Wednesday","month_name":"November","quarter":4}
+{"date_id":"2022-11-10","year":"2022","month":"11","day":"10","day_of_week":"4","day_name":"Thursday","month_name":"November","quarter":4}
+{"date_id":"2022-11-11","year":"2022","month":"11","day":"11","day_of_week":"5","day_name":"Friday","month_name":"November","quarter":4}
+{"date_id":"2022-11-14","year":"2022","month":"11","day":"14","day_of_week":"1","day_name":"Monday","month_name":"November","quarter":4}
+{"date_id":"2022-11-15","year":"2022","month":"11","day":"15","day_of_week":"2","day_name":"Tuesday","month_name":"November","quarter":4}

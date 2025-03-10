@@ -114,16 +114,16 @@ def _return_df_dim_counterparty(df_totesys_counterparty, df_totesys_address):
  
 def _return_df_dim_staff(df_totesys_staff, df_totesys_department):
     # Ensure the required columns exist in both DataFrames
-    expected_staff_columns = ['staff_id', 'first_name', 'last_name', 'department_id', 'email_address']
-    expected_department_columns = ['department_id', 'department_name', 'location']
+    staff_columns = ['staff_id', 'first_name', 'last_name', 'department_id', 'email_address']
+    department_columns = ['department_id', 'department_name', 'location']
 
     # Select and validate staff columns
     df_staff_copy = copy(df_totesys_staff)
-    df_staff_reduced = df_staff_copy.loc[:,expected_staff_columns]
+    df_staff_reduced = df_staff_copy.loc[:,staff_columns]
 
     # Select and validate department columns
     df_department_copy = copy(df_totesys_department)
-    df_department_reduced = df_department_copy.loc[:,expected_department_columns]
+    df_department_reduced = df_department_copy.loc[:,department_columns]
 
     # Merge staff with department data
     df_merged = df_staff_reduced.merge(df_department_reduced, on="department_id")

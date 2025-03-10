@@ -136,16 +136,11 @@ def lambda_handler(event, context):
 
 # Some code for live testing
 
-if __name__ == "__main__" and True == False:
+if __name__ == "__main__":
     
     load_dotenv()
     s3 = boto3.client("s3")
-    s3.create_bucket(
-        Bucket=os.environ.get("INJESTION_BUCKET_NAME"),
-        CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
-    s3.create_bucket(
-        Bucket=os.environ.get("PROCESSED_BUCKET_NAME"),
-        CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
+
     
 
     datetime_str = return_datetime_string()
