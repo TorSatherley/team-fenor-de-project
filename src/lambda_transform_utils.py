@@ -59,7 +59,7 @@ def _return_df_dim_dates(df_totesys_sales_order):
         all_values += list(x)
     unique_list_of_dates = list(set(all_values))
     unique_list_of_dates.sort()
-    
+    print(f"unique_list_of_dates: {unique_list_of_dates[:5]}")
     #%% produce entries for this date
     
     months_dict = {1:"january",2:"february",3:"march",4:"april",5:"may",6:"june",7:"july",8:"august",9:"september",10:"october",11:"november",12:"december"}
@@ -67,8 +67,10 @@ def _return_df_dim_dates(df_totesys_sales_order):
     for i, d in enumerate(unique_list_of_dates):
         weekday_num, weekday_name = return_week(d)
         months_name = months_dict[int(d[5:7])]
-        quarter_int = (int(d[5:7]) // 4) + 1
-        data += [[i, int(d[:4]), f"{int(d[5:7]):02d}", f"{int(d[8:10]):02d}", weekday_num, weekday_name, months_name, quarter_int]]
+        quarter_int = (int(d[5:7]) // 3) + 1
+        date_id_val = f"{int(d[:4])}-{int(d[5:7]):02d}-{int(d[8:10]):02d}"
+        print(date_id_val)
+        data += [[date_id_val, int(d[:4]), int(d[5:7]), int(d[8:10]), weekday_num, weekday_name, months_name, quarter_int]]
     index = range(len(data))
     columns = ["date_id", "year", "month", "day", "day_of_week", "day_name", "month_name", "quarter"]
     df_dim_dates = pd.DataFrame(data=data, columns=columns)

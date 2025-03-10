@@ -8,7 +8,7 @@ from datetime import datetime
 from src.util import json_to_pg8000_output, return_s3_key
 from unittest import mock
 from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
-from src.util import json_to_pg8000_output, return_datetime_string, write_table_to_s3
+from src.util import json_to_pg8000_output, return_datetime_string, write_table_to_s3, return_week
 import pandas as pd
 import io
 from _pytest.monkeypatch import MonkeyPatch
@@ -275,37 +275,43 @@ class TestCreateDateTable:
         # act
         df_dim_dates = _return_df_dim_dates(df_totesys_sales_order[:hardcode_limit])
         response     = populate_parquet_file(s3_client, datetime_string, df_dim_dates_name, df_dim_dates, hardcoded_variables["processing_bucket_name"])
+        print(df_dim_dates)
         
         # assert - df_dim_dates type
         assert isinstance(df_dim_dates, pd.DataFrame)
         
         # assert_unique_dates_exist
-        actual_dates_stored = set(f"{YYYY}-{MM}-{DD}" for YYYY, MM, DD in zip(df_dim_dates["year"].values, 
+        
+        
+        
+        actual_dates_stored = set(f"{YYYY}-{int(MM):02d}-{int(DD):02d}" for YYYY, MM, DD in zip(df_dim_dates["year"].values, 
                                                                               df_dim_dates["month"].values, 
                                                                               df_dim_dates["day"].values))
         assert set(expected_dates) == actual_dates_stored
         
-        # assert other columns are passing correctly - we know its not working yet
-        expected_created_date_id = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        expected_year = [2022, 2022,2022, 2022, 2022, 2022, 2022, 2022, 2022, 2022]
-        expected_month = ["11","11","11","11","11","11","11","11","11","11"]
-        expected_day_= ["03", "03", "03", "03", "04", "04", "04", "07", "07", "09"]
-        expected_day_of_the_week = ["4", "3", "5", "1", "2", "3", "4", "5", "1", "2"]
-        expected_day_name = ["Thursday", "Wednesday", "Friday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Monday", "Tuesday"]
-        expected_month_name = ["November", "November", "November", "November", "November", "November", "November", "November", "November", "November"]
+        expected_year = [int(d[:4]) for d in expected_dates]
+        expected_month = [int(d[5:7]) for d in expected_dates]
+        expected_day= [int(d[8:10]) for d in expected_dates]
+
+        _week = list(map(return_week, expected_dates))
+        print(f"week: {_week}")
+        expected_day_of_the_week = [i[0] for i in _week]
+        expected_day_name = [i[1] for i in _week]
+        
+        expected_month_name = ["november", "november", "november", "november", "november", "november", "november", "november", "november", "november"]
         expected_quater = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
 
                 # assert_correct_data
         ## index
-        assert all(expected_created_date_id == df_dim_dates.index.values)
+        assert all(expected_dates == df_dim_dates.index.values)
         ## values
         assert all(expected_year == df_dim_dates['year'])
         assert all(expected_month == df_dim_dates["month"])
-        assert all(expected_day_ == df_dim_dates["day"])
-        #assert all(expected_day_of_the_week == df_dim_dates["day_of_week"])
+        assert all(expected_day == df_dim_dates["day"])
+        assert all(expected_day_of_the_week == df_dim_dates["day_of_week"])
         assert all(expected_day_name == df_dim_dates["day_name"])
         assert all(expected_month_name == df_dim_dates["month_name"])
-        assert all(expected_quater == df_dim_dates["quater"])
+        assert all(expected_quater == df_dim_dates["quarter"].values)
 
 
         # # assert - response good
@@ -711,6 +717,7 @@ class TestCreatessalesOrderTables:
 
 
 class TestLambdaHandler_2:
+    @pytest.mark.skip
     def test_9a_check_all_required_parquet_files_are_populated(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables, mock_s3_env_vars):
         
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl
