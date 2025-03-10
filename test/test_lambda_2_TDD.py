@@ -68,10 +68,6 @@ class DummyContext:
 MOCK_ENVIROMENT = True
 
 
-
-#%% fixtures
-
-
 @pytest.fixture()
 def hardcoded_variables():
     hardcoded_variables = {}
@@ -95,6 +91,10 @@ def hardcoded_variables():
     }
     
     return hardcoded_variables
+
+
+#%% fixtures
+
 
 @pytest.fixture()
 def s3_client(hardcoded_variables):
@@ -389,7 +389,7 @@ class TestCreateLocationTables:
         
         # act
         df_dim_location = _return_df_dim_location(df_totesys_address[:hardcode_limit])
-        response      = populate_parquet_file(s3_client, datetime_string, df_dim_location_name, df_dim_location, hardcoded_variables["processing_bucket_name"])
+        response        = populate_parquet_file(s3_client, datetime_string, df_dim_location_name, df_dim_location, hardcoded_variables["processing_bucket_name"])
 
         # assert - df_dim_location type
         assert isinstance(df_dim_location, pd.DataFrame)
@@ -574,7 +574,7 @@ class TestCreatescurrencyTables:
 
         # assert - df_dim_staff type
         assert isinstance(df_dim_currency, pd.DataFrame)
-        print(df_dim_currency)
+        
         # assert_correct_data
         ## index
         assert all(expected_currency_id == df_dim_currency.index.values)
@@ -640,7 +640,7 @@ class TestCreatessalesOrderTables:
 
         # assert - df_fact_staff type
         assert isinstance(df_fact_sales_order, pd.DataFrame)
-        print(df_fact_sales_order)
+        
         # assert_correct_data
         ## index
         assert all(expected_fact_sales_order_id == df_fact_sales_order.index.values)
@@ -711,7 +711,6 @@ class TestLambdaHandler_2:
         # act
         response = lambda_handler(event, DummyContext)
         response_list_of_s3_filepaths = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        #print(response_list_of_s3_filepaths)
         actual_s3_file_keys = [i['Key'] for i in response_list_of_s3_filepaths['Contents']]
         
         # assert

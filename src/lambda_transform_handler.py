@@ -130,22 +130,5 @@ def lambda_handler(event, context):
                 }
     except Exception as e:
         return str(e)
-        #logger.info(f"Unexpected Exception: %s", str(e))
-        
-        
-        #timestamp = str(int(dt.timestamp(dt.now())))
-        #quotes = [get_quote() for _ in range(3)]
-        #output_data["quotes"] = [resp for status, resp in quotes if status == 200]
-        #if random() < 0.1:
-        #    quote = output_data["quotes"][randint(0, 2)]
-        #    content = quote["content"]
-        #    logger.info("[GREAT QUOTE] %s", content)
-        #key = f"quote_{timestamp}.json"
-        #write_result = write_to_s3(s3_client, output_data, BUCKET_NAME, key)
-        #if write_result:
-        #    logger.info("Wrote quotes to S3")
-        #else:
-        #    logger.info("There was a problem. Quotes not written.")
-    #except Exception as e:
-    #    return str(e)
-    #    #logger.info(f"Unexpected Exception: %s", str(e))
+
+
