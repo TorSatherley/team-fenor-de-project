@@ -52,20 +52,18 @@ def close_db(conn):
         raise e
 
 
-def get_rows_and_columns_from_table(conn, table, last_checked):
+def get_rows_and_columns_from_table(conn, table):
     """Fetches rows and column names from a database table."""
     try:
         columns_query = conn.run(
             f"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '{table}'"
         )
         columns = [column[0] for column in columns_query]
-        recent_check = datetime.now()
-        query = f"SELECT * FROM {table} WHERE created_at > '{last_checked}' OR last_updated > '{last_checked}'"
-        rows = conn.run(query)
-        return rows, columns, recent_check
+        rows = conn.run(f"SELECT * FROM {table}")
+        return rows, columns
     except Exception as e:
         print(f"Error querying table {table}: {e}")
-        return [], [], []
+        return [], []
 
 
 def write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_time):

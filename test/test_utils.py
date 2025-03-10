@@ -5,7 +5,7 @@ import boto3
 from moto import mock_aws
 from pg8000.exceptions import DatabaseError
 from botocore.exceptions import ClientError, NoCredentialsError
-from datetime import datetime, date
+from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 import tempfile
 from src.utils import (
@@ -91,12 +91,6 @@ def bucket(s3):
         with open(file_path, "r") as json_file:
             text_to_write = json_file.read()
             s3.put_object(Body=text_to_write, Bucket=BUCKET_NAME, Key=s3_key)
-
-
-@pytest.fixture
-def mock_last_checked():
-    mock_date = date(2000, 1, 1)
-    return mock_date
 
 
 class TestGetSecret:
@@ -264,57 +258,49 @@ class TestConnection:
 
 class TestGetRowsAndColumnsFromTable:
     @pytest.mark.it("Fetches rows and columns from a valid table")
-    def test_get_rows_and_columns_from_table(
-        self, mock_totesys_connection, mock_last_checked
-    ):
+    def test_get_rows_and_columns_from_table(self, mock_totesys_connection):
         """Test successful retrieval of rows and column names."""
         mock_totesys_connection.run.side_effect = [
             [("col_1",), ("col_2",)],
             [["val1", "val2"], ["val3", "val4"]],
         ]
         mock_table = "test_table"
-        rows, columns, last_checked = get_rows_and_columns_from_table(
-            mock_totesys_connection, mock_table, mock_last_checked
+        rows, columns = get_rows_and_columns_from_table(
+            mock_totesys_connection, mock_table
         )
         assert mock_totesys_connection.run.call_count == 2
         assert rows == [["val1", "val2"], ["val3", "val4"]]
         assert columns == ["col_1", "col_2"]
 
     @pytest.mark.it("Handles empty table (no rows but columns exist)")
-    def test_get_rows_and_columns_empty_table(self, mock_last_checked):
+    def test_get_rows_and_columns_empty_table(self):
         """Test handling when table exists but has no rows."""
         mock_conn = MagicMock()
         mock_conn.run.side_effect = [
             [("id",), ("name",), ("age",)],
             [],
         ]
-        rows, columns, last_checked = get_rows_and_columns_from_table(
-            mock_conn, "users", mock_last_checked
-        )
+        rows, columns = get_rows_and_columns_from_table(mock_conn, "users")
         assert columns == ["id", "name", "age"]
         assert rows == []
         assert mock_conn.run.call_count == 2
 
     @pytest.mark.it("Handles table not found error gracefully")
-    def test_get_rows_and_columns_table_not_found(self, mock_last_checked):
+    def test_get_rows_and_columns_table_not_found(self):
         """Test handling when the table does not exist."""
         mock_conn = MagicMock()
         mock_conn.run.side_effect = Exception("relation 'non_existent' does not exist")
-        rows, columns, last_checked = get_rows_and_columns_from_table(
-            mock_conn, "non_existent", mock_last_checked
-        )
+        rows, columns = get_rows_and_columns_from_table(mock_conn, "non_existent")
         assert columns == []
         assert rows == []
         assert mock_conn.run.call_count == 1
 
     @pytest.mark.it("Handles unexpected database errors")
-    def test_get_rows_and_columns_unexpected_exception(self, mock_last_checked):
+    def test_get_rows_and_columns_unexpected_exception(self):
         """Test handling of an unexpected exception."""
         mock_conn = MagicMock()
         mock_conn.run.side_effect = Exception("Unexpected error")
-        rows, columns, mock_last_checked = get_rows_and_columns_from_table(
-            mock_conn, "users", mock_last_checked
-        )
+        rows, columns = get_rows_and_columns_from_table(mock_conn, "users")
         assert columns == []
         assert rows == []
         assert mock_conn.run.call_count == 1
