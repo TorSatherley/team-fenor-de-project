@@ -19,8 +19,9 @@ def read_s3_table_json(s3_client, s3_key, ingestion_bucket_name):
     return s3_df
     """
     response = s3_client.get_object(Bucket=ingestion_bucket_name, Key=s3_key)
-    jsonl_data = response['Body'].read().decode('utf-8')
-    df = pd.DataFrame([json.loads(line.replace("\\", "\\\\")) for line in jsonl_data.strip().split("\n")])
+    json_data = response['Body'].read().decode('utf-8')
+    json_data = json_data.replace("\\", "\\\\")  # If needed
+    df = pd.DataFrame(json.loads(json_data))
     
     return df
 

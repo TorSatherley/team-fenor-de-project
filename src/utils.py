@@ -73,7 +73,7 @@ def write_table_to_s3(s3_client, bucket_name, table, rows, columns, date_and_tim
             return None
         df = pd.DataFrame(data=rows, columns=columns)
         json_data = df.to_json(orient="records", lines=False, date_format="iso")
-        key = f"data/{date_and_time}/{table}.jsonl"
+        key = f"data/{date_and_time}/{table}.json"
         s3_client.put_object(Bucket=bucket_name, Key=key, Body=json_data)
         return key
     except (ClientError, NoCredentialsError, ValueError, Exception) as e:

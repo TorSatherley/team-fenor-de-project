@@ -25,10 +25,28 @@ from pg8000.exceptions import DatabaseError
 import logging
 from datetime import datetime
 from random import random, randint
-from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design, _return_df_dim_location, populate_parquet_file, _return_df_dim_counterparty, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, return_s3_key
-from src.utils import get_secret, create_conn, close_db, get_rows_and_columns_from_table, write_table_to_s3, log_file
+
 from dotenv import load_dotenv
-from src.utils import json_to_pg8000_output, return_datetime_string, simple_read_parquet_file_into_dataframe
+#from src.utils import return_datetime_string
+#from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design, _return_df_dim_location, populate_parquet_file, _return_df_dim_counterparty, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, return_s3_key
+
+from src.utils import (
+    return_datetime_string
+)
+
+from src.lambda_transform_utils import (
+    read_s3_table_json,
+    _return_df_dim_dates,
+    _return_df_dim_design,
+    _return_df_dim_location,
+    populate_parquet_file,
+    _return_df_dim_counterparty,
+    _return_df_dim_staff,
+    _return_df_dim_currency,
+    _return_df_fact_sales_order,
+    return_s3_key
+)
+
 
 logger = logging.getLogger(__name__) 
 logger.setLevel(logging.INFO)
@@ -58,8 +76,8 @@ def lambda_handler(event, context):
         # variables prep
         datetime_string = event["datetime_string"]
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        ingestion_bucket_name = os.environ.get("INJESTION_BUCKET_NAME")
-        processed_bucket_name = os.environ.get("PROCESSED_BUCKET_NAME")
+        ingestion_bucket_name = os.environ.get("INGESTION_BUCKET")
+        processed_bucket_name = os.environ.get("PROCESSED_BUCKET")
         responses = []
 
         output_data = {"quotes": []}
