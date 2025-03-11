@@ -4,19 +4,22 @@
 
 This project is an ETL (Extract, Transform, Load) pipeline that automates data movement from a live PostgreSQL relational database (ToteSys) into a data warehouse optimised for analytics. The pipeline is designed for scalability, reliability and automation using AWS services and Infrastructure as Code.
 
-This project has been an opportunity for our team to showcase our knowledge of Python, SQL, database modelling, AWS, good operational practices and Agile working, amongst other technical and non-technical skills learnt over our time on the Northcoders Data Engineering Bootcamp.
+This project has been an opportunity for our team to showcase our knowledge of Python, SQL, database modelling, AWS, good DevOps practices and Agile working, amongst other technical and non-technical skills learnt over our time on the Northcoders Data Engineering Bootcamp.
+
 
 ## About
 
 The application of this project can be split into three separate stages: Extract, Transform and Load, or, as shown in the diagram below, the ingestion zone, the processed zone, and the analytics zone.
 
-![alt text](totesys_etl_visual.gif)
+![ToteSys ETL Pipeline Diagram](totesys_etl_visual.gif)
+
+The ToteSys database is meant to simulate the back-end data of a commercial application, with data being inserted and updated into the database several times a day. The full ERD for the ToteSys database is detailed [here](https://dbdiagram.io/d/SampleDB-6332fecf7b3d2034ffcaaa92). 
 
 ### Ingestion Zone
 
-The ingestion zone of the pipeline utilises Python and AWS Lambda to extract data at regular intervals from the TotSys database. The timing of this extraction is managed using Amazon Eventbridge, and the entire process is logged to Cloudwatch, with any failures triggering an email alert. This stage uses Python, SQL and PG8000 to connect to the database, extract the relevant data, and do some minimal processing before storage.
+The ingestion zone of the pipeline utilises Python and AWS Lambda to extract data at regular intervals from the ToteSys database. The timing of this extraction is managed using Amazon Eventbridge, and the entire process is logged to Cloudwatch, with any failures triggering an email alert. This stage uses Python, SQL and PG8000 to connect to the database, extract the relevant data, and do some minimal processing before storage.
 
-The data is stored in JSONL format in an "ingestion" Amazon S3 bucket acting as a data lake. The data is immutable and will not be changed or destroyed.
+The data is stored in JSONL (JSON Lines) format in an "ingestion" Amazon S3 bucket. The data is immutable and will not be changed or destroyed.
 
 ### Processed Zone
 
@@ -26,7 +29,20 @@ This stage uses Python and Pandas to transform the data stored in the "ingestion
 
 ### Analytics Zone
 
-The analytics zone of the pipeline loads the transformed data from the "processed" bucket into a prepared data warehouse at defined intervals. The process is again logged and monitored using Cloudwatch. The data is now ready to be examined using your BI dashboard of choice, such as AWS Quicksight.
+The analytics zone of the pipeline loads the transformed data from the "processed" bucket into a prepared data warehouse at defined intervals. The process is again logged and monitored using Cloudwatch. The data is now ready to be examined using your BI dashboard of choice.
+
+The following table lists the fact and dimension tables included in the single star-schema stored in the data warehouse, and the full ERD for the data warehouse is detailed [here](https://dbdiagram.io/d/SampleDW-Sales-637a423fc9abfc611173f637).
+
+| tablename        |
+|------------------|
+| fact_sales_order |
+| dim_staff        |
+| dim_location     |
+| dim_design       |
+| dim_date         |
+| dim_currency     |
+| dim_counterparty |
+
 
 ## Prerequisites
 
@@ -134,7 +150,7 @@ The ETL pipeline infrastructure is managed using Terraform. Follow these steps t
   cd terraform
   terraform init
 ```
-This downloads the necessary provider plugins and sets up terraform for use.
+This downloads the necessary provider plugins and sets up Terraform for use.
 
 2. Preview the Infrastructure changes:
 ```bash
@@ -154,9 +170,23 @@ This will deploy the infrastructure. Terraform will show a summary of the planne
 ```
 Once you've finished checking out the services deployed on your AWS console, you might want to tear the infrastructure down. Not doing so could cause unwanted costs to your AWS account. You'll be able to deploy the project again using the Terraform Infrastructure as Code anytime you want.
 
+## CI/CD
+
+This project has been designed to be maintained using continuous integration and continuous deployment - specifically using GitHub actions. This enables seamless updates of the project into the production environment, and runs all of the same checks as the 'make run-checks' command, as well as deploying all changes via Terraform. The workflow has been designed so that any Terraform deployment will not happen until all checks have been completed successfully.
+
+To test this, make a branch of your forked version of the repo, make a change and then merge it with main. Check the "Actions" tab on this repo on your GitHub account to see all unit tests, compliance checks and Terraform deployment happen automatically within the workflow.
+
 ## Roadmap
 
+Some future additions to extend the project could include:
+
+- Populate all of the fact and dim tables in the overall data warehouse structure shown [here](https://dbdiagram.io/d/RevisedDW-63a19c5399cb1f3b55a27eca).
+- Ingest data from an external API - for example retrieving relevant daily foreign exchange rates from https://github.com/fawazahmed0/exchange-api, and store in the "ingestion" S3 bucket.
+- Ingest data from a file source - eg another S3 bucket that can be collected and stored at intervals.
+
 ## Documentation
+
+The original specification for this project can be found at https://github.com/northcoders/de-project-specification.
 
 ## Contributors
 
