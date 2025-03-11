@@ -26,7 +26,7 @@ import logging
 from datetime import datetime
 from random import random, randint
 
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 #from src.utils import return_datetime_string
 #from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design, _return_df_dim_location, populate_parquet_file, _return_df_dim_counterparty, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, return_s3_key
 
@@ -154,22 +154,22 @@ def lambda_handler(event, context):
 
 # Some code for live testing
 
-if __name__ == "__main__":
-    
-    load_dotenv()
-    s3 = boto3.client("s3")
-
-    
-
-    datetime_str = return_datetime_string()
-    
-    jsonl_list = ["address","counterparty","currency","department","design","sales_order","staff"]
-    for jsonl_file in jsonl_list:
-        key = return_s3_key(jsonl_file, datetime_str)
-        with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
-            s3.put_object(Bucket=os.environ.get("INJESTION_BUCKET_NAME"), Key=key, Body=file.read())
-    
-    
-    event = {"datetime_string":datetime_str}
-    result = lambda_handler(event, "context")
+#if __name__ == "__main__":
+#    
+#    load_dotenv()
+#    s3 = boto3.client("s3")
+#
+#    
+#
+#    datetime_str = return_datetime_string()
+#    
+#    jsonl_list = ["address","counterparty","currency","department","design","sales_order","staff"]
+#    for jsonl_file in jsonl_list:
+#        key = return_s3_key(jsonl_file, datetime_str)
+#        with open(f"data/json_lines_s3_format/{jsonl_file}.jsonl", "rb") as file:
+#            s3.put_object(Bucket=os.environ.get("INJESTION_BUCKET_NAME"), Key=key, Body=file.read())
+#    
+#    
+#    event = {"datetime_string":datetime_str}
+#    result = lambda_handler(event, "context")
     

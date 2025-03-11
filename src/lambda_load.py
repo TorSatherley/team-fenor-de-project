@@ -6,6 +6,8 @@ import pandas as pd
 import json
 import time 
 
+from src.lambda_transform_utils import (return_s3_key)
+
 def load_connection():
     try:
         region_name = "eu-west-2"
@@ -49,18 +51,20 @@ def lambda_handler(event, context):
         start_time = time.time()
         conn = load_connection()
         cursor = conn.cursor()
-        # event['datetime_string'] = 'data/20250305_092045/'
+         
         bucket_name = 'totesys-test-processed'
-        latest_folder = 'data/20250305_092045/'
+        datetime_string = event["datetime_string"]
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        s3_list = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=latest_folder)
+        s3_list = s3_client.list_objects_v2(Bucket=bucket_name)
         s3_files = [file['Key'] for file in s3_list['Contents']]
         # Insert statement
         for file in s3_files:
             table_name = os.path.splitext(os.path.basename(file))[0]
             if table_name == '':
                 continue
-            s3_key = f'{latest_folder}{table_name}.parquet'
+            s3_key = return_s3_key("sales_order",    datetime_string)
+            
+            
             s3_response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
             
             # Read parquet file
