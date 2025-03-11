@@ -3,19 +3,31 @@ resource "aws_lambda_function" "lambda_load_handler" {
   function_name    = "lambda_load_handler"
   role             = aws_iam_role.lambda_load_exec.arn
   runtime          = "python3.13"
-  handler          = "lambda_load.lambda_handler"
+  handler          = "src.lambda_load.lambda_handler"
   timeout         = 200
   layers            = [aws_lambda_layer_version.lambda_load_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1"]
   filename         = data.archive_file.lambda_load_package.output_path
   source_code_hash = data.archive_file.lambda_load_package.output_base64sha256
 }
 
+# data "archive_file" "lambda_load_package" {
+#   type        = "zip"
+#   source_dir  = "${path.module}/../../src"
+#   output_path = "${path.module}/lambda_load.zip"
+# }
+
 data "archive_file" "lambda_load_package" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
-  output_path = "${path.module}/src/lambda_load.zip"
+  output_path = "${path.module}/lambda_load.zip"
+  source {
+    content = file("${path.module}/../../src/lambda_load.py")
+    filename = "src/lambda_load.py"
+  }
+  source {
+    content = file("${path.module}/../../src/utils.py")
+    filename = "src/utils.py"
+  }
 }
-
 
 
 # Layers 
@@ -34,7 +46,7 @@ resource "null_resource" "pip_install" {
 data "archive_file" "lambda_load_layer" {
   type        = "zip"
   source_dir  = "${path.module}/${var.lambda_load_handler}_layer"
-  output_path = "${path.module}/src/layer.zip"
+  output_path = "${path.module}/layer_load.zip"
   depends_on  = [null_resource.pip_install]
 }
 

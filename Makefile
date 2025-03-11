@@ -66,11 +66,12 @@ security-test:
 
 
 run-black:
-	$(call execute_in_env, black  ./src/*.py ./test/*.py ./db/*.py ./terraform/extract_module/src/*.py)
+	$(call execute_in_env, black  ./src/*.py ./test/*.py)
 
 ## Run the unit tests
 unit-test:
-	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} pytest -v)
+	@echo ">>> About to create environment: $(SECRET_NAME)..."
+	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} pytest -vvvrP)
 
 
 ## Run the coverage check
