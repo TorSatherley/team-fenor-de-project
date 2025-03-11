@@ -33,6 +33,10 @@ data "archive_file" "lambda_transform_package" {
     content = file("${path.module}/../../src/utils.py")
     filename = "src/utils.py"
   }
+  source {
+    content = file("${path.module}/../../src/lambda_transform_utils.py")
+    filename = "src/lambda_transform_utils.py"
+  }
 }
 
 
