@@ -4,10 +4,16 @@ resource "aws_lambda_function" "lambda_load_handler" {
   role             = aws_iam_role.lambda_load_exec.arn
   runtime          = "python3.13"
   handler          = "src.lambda_load.lambda_handler"
-  timeout         = 200
-  layers            = [aws_lambda_layer_version.lambda_load_layer.arn, "arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1"]
+  timeout          = 600
+  layers           = ["arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python313:1",aws_lambda_layer_version.psycopg2_layer.arn, aws_lambda_layer_version.lambda_load_layer.arn]
   filename         = data.archive_file.lambda_load_package.output_path
   source_code_hash = data.archive_file.lambda_load_package.output_base64sha256
+  environment {
+    variables = {
+      SECRET_NAME = "data-warehouse-credentials"
+      BUCKET_NAME = "totesys-processed-zone-fenor"
+    }
+  }
 }
 
 # data "archive_file" "lambda_load_package" {
@@ -26,6 +32,10 @@ data "archive_file" "lambda_load_package" {
   source {
     content = file("${path.module}/../../src/utils.py")
     filename = "src/utils.py"
+  }
+    source {
+    content = file("${path.module}/../../src/lambda_transform_utils.py")
+    filename = "src/lambda_transform_utils.py"
   }
 }
 
@@ -55,4 +65,11 @@ resource "aws_lambda_layer_version" "lambda_load_layer" {
   filename            = data.archive_file.lambda_load_layer.output_path
   source_code_hash    = data.archive_file.lambda_load_layer.output_base64sha256
   compatible_runtimes = ["python3.13", "python3.12", "python3.11", "python3.10", "python3.9"]
+}
+
+resource "aws_lambda_layer_version" "psycopg2_layer" {
+  layer_name = "psycopg2_layer"
+  filename = "${path.module}/psycopg2.zip"
+  compatible_architectures = ["x86_64"]
+  compatible_runtimes = ["python3.13"]
 }
