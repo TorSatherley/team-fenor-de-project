@@ -3,7 +3,7 @@ import io
 import pandas as pd
 import json
 import datetime
-from src.util import return_week, return_s3_key
+from src.utils import return_week, return_s3_key
 from copy import copy
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -111,7 +111,6 @@ def _return_df_dim_counterparty(df_totesys_counterparty, df_totesys_address):
     
     df_merged.set_index("counterparty_id", inplace=True)
     
-    df_merged.to_csv("test.csv")
     
     return df_merged
 

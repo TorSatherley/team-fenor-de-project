@@ -3,12 +3,12 @@ import boto3
 from moto import mock_aws
 from unittest.mock import Mock, patch
 from datetime import datetime
-from src.lambda_transform_handler import lambda_handler
+from src.lambda_transform import lambda_handler
 from datetime import datetime
-from src.util import json_to_pg8000_output, return_s3_key
+from src.utils import json_to_pg8000_output, return_s3_key
 from unittest import mock
 from src.lambda_transform_utils import read_s3_table_json, _return_df_dim_dates, _return_df_dim_design,  populate_parquet_file, _return_df_dim_location, _return_df_dim_staff, _return_df_dim_currency, _return_df_fact_sales_order, _return_df_dim_counterparty
-from src.util import json_to_pg8000_output, return_datetime_string, write_table_to_s3, return_week
+from src.utils import json_to_pg8000_output, return_datetime_string, write_table_to_s3, return_week
 import pandas as pd
 import io
 from _pytest.monkeypatch import MonkeyPatch
@@ -275,7 +275,6 @@ class TestCreateDateTable:
         # act
         df_dim_dates = _return_df_dim_dates(df_totesys_sales_order[:hardcode_limit])
         response     = populate_parquet_file(s3_client, datetime_string, df_dim_dates_name, df_dim_dates, hardcoded_variables["processing_bucket_name"])
-        print(df_dim_dates)
         
         # assert - df_dim_dates type
         assert isinstance(df_dim_dates, pd.DataFrame)
@@ -294,7 +293,6 @@ class TestCreateDateTable:
         expected_day= [int(d[8:10]) for d in expected_dates]
 
         _week = list(map(return_week, expected_dates))
-        print(f"week: {_week}")
         expected_day_of_the_week = [i[0] for i in _week]
         expected_day_name = [i[1] for i in _week]
         
@@ -312,23 +310,6 @@ class TestCreateDateTable:
         assert all(expected_day_name == df_dim_dates["day_name"])
         assert all(expected_month_name == df_dim_dates["month_name"])
         assert all(expected_quater == df_dim_dates["quarter"].values)
-
-
-        # # assert - response good
-        #assert response == "success"
-        # 
-        # # assert - design parquet file exists
-        # respose_actual_tables_keys = s3_client.list_objects_v2(Bucket=hardcoded_variables["processing_bucket_name"])
-        # actual_tables_keys = [i["Key"] for i in respose_actual_tables_keys["Contents"]]
-        # assert actual_tables_keys == [return_s3_key(df_dim_dates_name, datetime_string)]
-            
-        # assert TODO - parquet has right columns
-        
-        # assert TODO - parquet table has at least one matching columns values (all rows match) to our expected snapshot
-        print("")
-        
-        # assert TODO - that the file is parquet
-        print("")
 
         
 class TestCreateDesignTables:
@@ -459,7 +440,6 @@ class TestCreateCounterpartyTables:
         # assert - df_dim_design type
         assert isinstance(df_dim_counterparty, pd.DataFrame)
         
-        df_dim_counterparty.to_csv("test2")
         
         # assert_correct_data
         ## index
