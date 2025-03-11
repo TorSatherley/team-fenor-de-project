@@ -717,7 +717,6 @@ class TestCreatessalesOrderTables:
 
 
 class TestLambdaHandler_2:
-    @pytest.mark.skip
     def test_9a_check_all_required_parquet_files_are_populated(self, s3_client_ingestion_populated_with_totesys_jsonl, hardcoded_variables, mock_s3_env_vars):
         
         s3_client, datetime_string = s3_client_ingestion_populated_with_totesys_jsonl

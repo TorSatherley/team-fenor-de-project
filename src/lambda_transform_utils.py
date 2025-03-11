@@ -59,7 +59,7 @@ def _return_df_dim_dates(df_totesys_sales_order):
         all_values += list(x)
     unique_list_of_dates = list(set(all_values))
     unique_list_of_dates.sort()
-    print(f"unique_list_of_dates: {unique_list_of_dates[:5]}")
+    
     #%% produce entries for this date
     
     months_dict = {1:"january",2:"february",3:"march",4:"april",5:"may",6:"june",7:"july",8:"august",9:"september",10:"october",11:"november",12:"december"}
@@ -69,7 +69,7 @@ def _return_df_dim_dates(df_totesys_sales_order):
         months_name = months_dict[int(d[5:7])]
         quarter_int = (int(d[5:7]) // 3) + 1
         date_id_val = f"{int(d[:4])}-{int(d[5:7]):02d}-{int(d[8:10]):02d}"
-        print(date_id_val)
+        
         data += [[date_id_val, int(d[:4]), int(d[5:7]), int(d[8:10]), weekday_num, weekday_name, months_name, quarter_int]]
     index = range(len(data))
     columns = ["date_id", "year", "month", "day", "day_of_week", "day_name", "month_name", "quarter"]
@@ -94,7 +94,8 @@ def _return_df_dim_location(df_totesys_address):
     columns = ['address_id', 'address_line_1', "address_line_2", "district", "city", "postal_code", "country", "phone"]
     df_location_copy = copy(df_totesys_address)
     df_reduced = df_location_copy.loc[:,columns]
-    df_reduced.set_index("address_id", inplace=True)
+    df_reduced.rename(columns={"address_id" : "location_id"}, inplace=True)
+    df_reduced.set_index("location_id", inplace=True)
     
     return df_reduced
 
@@ -106,6 +107,7 @@ def _return_df_dim_counterparty(df_totesys_counterparty, df_totesys_address):
     df_merged = pd.merge(df_count, df_addy, left_on='legal_address_id', right_on='address_id')
     df_merged.rename(columns={"address_line_1" : "counterparty_legal_address_line_1", "address_line_2" : "counterparty_legal_address_line_2", "district" : "counterparty_legal_district", "city" : "counterparty_legal_city", "postal_code" : "counterparty_legal_postal_code", "country" : "counterparty_legal_country", "phone" : "counterparty_legal_phone_number"}, inplace=True)
     df_merged.drop(["address_id"], axis=1, inplace=True)
+    df_merged.drop(["legal_address_id"], axis=1, inplace=True)
     
     df_merged.set_index("counterparty_id", inplace=True)
     
