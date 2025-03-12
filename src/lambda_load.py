@@ -27,31 +27,19 @@ def lambda_handler(event, context):
         cursor = conn.cursor()
 
         bucket_name = 'totesys-processed-zone-fenor'
-        latest_folder = 'data/'
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        #s3_list = s3_client.list_objects_v2(Bucket=bucket_name)
-        #s3_files = [file['Key'] for file in s3_list['Contents']]
-
+        
         list_of_tables = ["dim_date", "dim_design", "dim_location", "dim_counterparty", "dim_staff", "dim_currency", "fact_sales_order"]
 
         # Insert statement
         for file in list_of_tables:
-            #print(f"s3_files: {s3_files}")
-            #table_name = os.path.splitext(os.path.basename(file))[0]
-            #s3_key = f'{latest_folder}{table_name}.parquet'
-            #if s3_key == 'data/.parquet':
-            #    continue
-            s3_key = return_s3_key(file, event["datetime_string"], extension=".parquet")
-            print(f"s3_key:{s3_key}")
-            s3_response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
+            
             # Read parquet file
+            s3_key = return_s3_key(file, event["datetime_string"], extension=".parquet")
+            s3_response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
             parquet_data = s3_response["Body"].read()
             df = pd.read_parquet(io.BytesIO(parquet_data))
             df = df.reset_index()
-
-            # Limit for time factor
-            if file == "sales_order":
-                df = df.head(6000)
 
             # Build Insert query
             df_columns = df.columns.tolist()
