@@ -9,18 +9,18 @@ from src.utils import get_secret
 from src.lambda_transform_utils import (return_s3_key)
 
 def lambda_handler(event, context):
-    sm_client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
-    if not "SECRET_NAME" in event.keys():
-        secret_name = os.environ.get("SECRET_NAME")
-    else:
-        secret_name = event["SECRET_NAME"]
-    
-    db_credentials = get_secret(sm_client, secret_name)
-    print(db_credentials)
-    
+    """moves parquet files from the """
     try:
-        # Connection
+        # Retrieve credentials
+        sm_client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
+        if not "SECRET_NAME" in event.keys():
+            secret_name = os.environ.get("SECRET_NAME")
+        else:
+            secret_name = event["SECRET_NAME"]
+        db_credentials = get_secret(sm_client, secret_name)
         dw_cleanup(db_credentials)
+        
+        # Connection
         print("Loading started...")
         start_time = time.time()
         conn = load_connection_psycopg2(db_credentials)
@@ -80,7 +80,7 @@ def load_connection_psycopg2(db_credentials):
         )
         return conn
     except Exception as e:
-        return {"message": str(e) + ", this is likely a secret credentials issue, either they are wrong or the connections couldn't be made"}
+        return {"message": str(e) + ", this is likely a secret credentials issue, either they are wrong or the connection to the aws manager couldn't be made"}
     
 def dw_cleanup(db_credentials):
     conn = load_connection_psycopg2(db_credentials)
