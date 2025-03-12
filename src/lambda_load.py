@@ -5,43 +5,25 @@ import psycopg2
 import pandas as pd
 import json
 import time 
-
+from src.utils import get_secret
 from src.lambda_transform_utils import (return_s3_key)
 
-def load_connection():
-    try:
-        conn = psycopg2.connect(
-            dbname = 'postgres',
-            user = 'project_team_6',
-            password = 'maSaxIhJnmv4bOk',
-            host = 'nc-data-eng-project-dw-prod.chpsczt8h1nu.eu-west-2.rds.amazonaws.com',
-            port=5432
-            )
-        return conn
-    except Exception as e:
-        return {"message": str(e)}
-    
-def dw_cleanup():
-    conn = load_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM fact_sales_order")
-    cursor.execute("DELETE FROM dim_counterparty")
-    cursor.execute("DELETE FROM dim_currency")
-    cursor.execute("DELETE FROM dim_date")
-    cursor.execute("DELETE FROM dim_design")
-    cursor.execute("DELETE FROM dim_location")
-    cursor.execute("DELETE FROM dim_staff")
-    conn.commit()
-    return {"message": "Date Warehouse restored to default state."}
-
-
 def lambda_handler(event, context):
+    sm_client = boto3.client(service_name="secretsmanager", region_name="eu-west-2")
+    if not "SECRET_NAME" in event.keys():
+        secret_name = os.environ.get("SECRET_NAME")
+    else:
+        secret_name = event["SECRET_NAME"]
+    
+    db_credentials = get_secret(sm_client, secret_name)
+    print(db_credentials)
+    
     try:
         # Connection
-        dw_cleanup()
+        dw_cleanup(db_credentials)
         print("Loading started...")
         start_time = time.time()
-        conn = load_connection()
+        conn = load_connection_psycopg2(db_credentials)
         cursor = conn.cursor()
 
         bucket_name = 'totesys-processed-zone-fenor'
@@ -98,5 +80,32 @@ def lambda_handler(event, context):
         return {"message": "Successfully uploaded to data warehouse"}
     except Exception as e:
         return {'message': f'Error: {e}'}
+
+def load_connection_psycopg2(db_credentials):
+    try:
+        conn = psycopg2.connect(
+            dbname=db_credentials["database"],
+            user=db_credentials["user"],
+            password=db_credentials["password"],
+            host=db_credentials["host"],
+            port=5432
+        )
+        return conn
+    except Exception as e:
+        return {"message": str(e) + ", this is likely a secret credentials issue, either they are wrong or the connections couldn't be made"}
     
-#print(lambda_handler({"datetime_string":"20250311_151013"},{}))
+def dw_cleanup(db_credentials):
+    conn = load_connection_psycopg2(db_credentials)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM fact_sales_order")
+    cursor.execute("DELETE FROM dim_counterparty")
+    cursor.execute("DELETE FROM dim_currency")
+    cursor.execute("DELETE FROM dim_date")
+    cursor.execute("DELETE FROM dim_design")
+    cursor.execute("DELETE FROM dim_location")
+    cursor.execute("DELETE FROM dim_staff")
+    conn.commit()
+    return {"message": "Date Warehouse restored to default state."}
+
+    
+print(lambda_handler({"datetime_string":"20250312_143803", "SECRET_NAME":"data-warehouse-credentials"},{}))
