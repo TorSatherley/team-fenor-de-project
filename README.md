@@ -43,6 +43,12 @@ The following table lists the fact and dimension tables included in the single s
 | dim_currency     |
 | dim_counterparty |
 
+The following table and heat map shows some examples of the kind of business intelligence that can be gained from querying the populated data warehouse.
+
+![data table](image.png)
+
+![heatmap](image-1.png)
+
 
 ## Prerequisites
 
@@ -192,11 +198,11 @@ The original specification for this project can be found at https://github.com/n
 
 Alphabetically listed:
 
-- Brendan Corbett
-- Connor Creed
-- Fabio Greenwood
-- Tor Satherley
-- Vincent Toor-Azorin
+- Brendan Corbett [GitHub](https://github.com/BrendanC8450)
+- Connor Creed [GitHub](https://github.com/creedy293) | [LinkedIn](https://www.linkedin.com/in/c-creed-942132231/)
+- Fabio Greenwood [GitHub](https://github.com/FabioGreenwood) | [LinkedIn](https://www.linkedin.com/in/fabio-greenwood-b0832676/)
+- Tor Satherley [GitHub](https://github.com/TorSatherley) | [LinkedIn](https://www.linkedin.com/in/tor-satherley-95a789265/)
+- Vincent Toor-Azorin [Github](https://github.com/Armatoor147) | [LinkedIn](https://www.linkedin.com/in/vincent-toor-azorin/)
 
 
 
