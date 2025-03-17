@@ -119,8 +119,6 @@ def s3_client_ingestion_populated_with_totesys_sales_order_jsonl_inc_datetime_st
 @pytest.fixture()
 def s3_client_ingestion_populated_with_totesys_jsonl(s3_client, hardcoded_variables):
     # just populates a jsonl file into a mock bucket for unit testing
-    #jsonl_list = ["address", "counterparty", "currency", "department", "design", "payment_type", "payment", "purchase_order", "staff", "transaction"]
-    # act
     datetime_str = return_datetime_string()
     jsonl_list = ["address","counterparty","currency","department","design","sales_order","staff"]
     for jsonl_file in jsonl_list:
@@ -194,8 +192,6 @@ def return_unique_dates_mentioned_in_first_10_rows_of_sale_table():
 
 #@pytest.mark.timeout(10)
 class TestReads3TableJson:
-
-    
     def test_1a_can_read_s3_json(self, s3_client, hardcoded_variables, return_list_of_cities_in_address_df):
         """
         this particially addresses:
